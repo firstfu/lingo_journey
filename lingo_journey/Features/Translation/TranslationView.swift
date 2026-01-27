@@ -1,5 +1,6 @@
 import ActivityKit
 import AVFoundation
+import Speech
 import SwiftData
 import SwiftUI
 import Translation
@@ -15,6 +16,11 @@ struct TranslationView: View {
     // Scanner states
     @State private var showScanner = false
     @State private var showCameraPermissionAlert = false
+
+    // Speech states
+    @State private var speechService = SpeechService()
+    @State private var isListening = false
+    @State private var showSpeechPermissionAlert = false
 
     // Language picker states
     @State private var showSourceLanguagePicker = false
@@ -51,7 +57,8 @@ struct TranslationView: View {
                         languageName: displayName(for: sourceLanguage),
                         text: $sourceText,
                         onCameraTap: handleCameraTap,
-                        onMicTap: { }
+                        onMicTap: handleMicTap,
+                        isListening: isListening
                     )
                     .padding(.horizontal, AppSpacing.xl)
 
@@ -82,6 +89,9 @@ struct TranslationView: View {
             await performTranslation(session: session)
         }
         .animation(.spring(duration: 0.3), value: translatedText)
+        .onChange(of: speechService.recognizedText) { _, newValue in
+            sourceText = newValue
+        }
         .fullScreenCover(isPresented: $showScanner) {
             ScannerView(
                 sourceLanguage: sourceLanguage,
@@ -97,6 +107,16 @@ struct TranslationView: View {
             }
         } message: {
             Text("請在設定中開啟相機權限以使用掃描翻譯功能")
+        }
+        .alert("需要語音辨識權限", isPresented: $showSpeechPermissionAlert) {
+            Button("取消", role: .cancel) { }
+            Button("開啟設定") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+        } message: {
+            Text("請在設定中開啟麥克風與語音辨識權限以使用語音輸入功能")
         }
         .sheet(isPresented: $showSourceLanguagePicker) {
             LanguagePickerSheet(
@@ -201,6 +221,41 @@ struct TranslationView: View {
     private func displayName(for language: Locale.Language) -> String {
         let locale = Locale(identifier: language.minimalIdentifier)
         return locale.localizedString(forIdentifier: language.minimalIdentifier)?.capitalized ?? language.minimalIdentifier
+    }
+
+    // MARK: - Microphone
+    private func handleMicTap() {
+        if isListening {
+            stopListening()
+        } else {
+            startListening()
+        }
+    }
+
+    private func startListening() {
+        Task {
+            let status = await speechService.requestAuthorization()
+            guard status == .authorized else {
+                await MainActor.run {
+                    showSpeechPermissionAlert = true
+                }
+                return
+            }
+
+            do {
+                try speechService.startListening(language: sourceLanguage)
+                await MainActor.run {
+                    isListening = true
+                }
+            } catch {
+                print("Speech error: \(error)")
+            }
+        }
+    }
+
+    private func stopListening() {
+        speechService.stopListening()
+        isListening = false
     }
 
     // MARK: - Camera
