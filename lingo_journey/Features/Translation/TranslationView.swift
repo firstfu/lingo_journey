@@ -1,7 +1,8 @@
+import ActivityKit
+import AVFoundation
 import SwiftData
 import SwiftUI
 import Translation
-import AVFoundation
 
 struct TranslationView: View {
     @State private var sourceLanguage = Locale.Language(identifier: "en")
@@ -16,6 +17,8 @@ struct TranslationView: View {
     @State private var showCameraPermissionAlert = false
 
     @Environment(\.modelContext) private var modelContext
+
+    private let liveActivityManager = LiveActivityManager.shared
 
     var body: some View {
         ZStack {
@@ -100,6 +103,14 @@ struct TranslationView: View {
 
     private func triggerTranslation() {
         guard !sourceText.isEmpty else { return }
+
+        // Start Live Activity
+        liveActivityManager.startActivity(
+            sourceLanguage: displayName(for: sourceLanguage),
+            targetLanguage: displayName(for: targetLanguage),
+            sourceText: sourceText
+        )
+
         configuration = TranslationSession.Configuration(
             source: sourceLanguage,
             target: targetLanguage
@@ -108,14 +119,30 @@ struct TranslationView: View {
 
     private func performTranslation(session: TranslationSession) async {
         isTranslating = true
+        let textToTranslate = sourceText
+
         do {
-            let response = try await session.translate(sourceText)
+            let response = try await session.translate(textToTranslate)
+
+            // Update Live Activity with result
+            await liveActivityManager.updateActivity(
+                translatedText: response.targetText,
+                sourceText: textToTranslate
+            )
+
             await MainActor.run {
                 translatedText = response.targetText
                 isTranslating = false
                 configuration = nil
             }
+
+            // End Live Activity after showing result
+            liveActivityManager.endActivityAfterDelay(seconds: 5.0)
+
         } catch {
+            // End Live Activity on error
+            await liveActivityManager.endActivity()
+
             await MainActor.run {
                 isTranslating = false
                 configuration = nil
