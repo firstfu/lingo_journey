@@ -3,8 +3,8 @@ import SwiftUI
 struct OnboardingPage: Identifiable {
     let id = UUID()
     let icon: String
-    let title: String
-    let description: String
+    let titleKey: LocalizedStringKey
+    let descriptionKey: LocalizedStringKey
 }
 
 struct OnboardingView: View {
@@ -14,18 +14,18 @@ struct OnboardingView: View {
     private let pages: [OnboardingPage] = [
         OnboardingPage(
             icon: "waveform",
-            title: "Translate With Confidence",
-            description: "Instantly understand and communicate in any language with ease."
+            titleKey: "onboarding.title1",
+            descriptionKey: "onboarding.description1"
         ),
         OnboardingPage(
             icon: "person.2",
-            title: "Face-to-Face Conversations",
-            description: "Have natural conversations with anyone, regardless of language barriers."
+            titleKey: "onboarding.title2",
+            descriptionKey: "onboarding.description2"
         ),
         OnboardingPage(
             icon: "arrow.down.circle",
-            title: "Works Offline",
-            description: "Download languages to translate anywhere, even without internet."
+            titleKey: "onboarding.title3",
+            descriptionKey: "onboarding.description3"
         )
     ]
 
@@ -52,7 +52,7 @@ struct OnboardingView: View {
                 .padding(.bottom, AppSpacing.xxl)
 
                 PrimaryButton(
-                    title: currentPage == pages.count - 1 ? "Get Started" : "Next",
+                    title: currentPage == pages.count - 1 ? String(localized: "onboarding.getStarted") : String(localized: "onboarding.next"),
                     action: {
                         if currentPage == pages.count - 1 {
                             hasCompletedOnboarding = true
@@ -82,12 +82,12 @@ struct OnboardingPageView: View {
                 .foregroundColor(.appPrimary)
 
             VStack(spacing: AppSpacing.xl) {
-                Text(page.title)
+                Text(page.titleKey)
                     .font(.appTitle1)
                     .foregroundColor(.appTextPrimary)
                     .multilineTextAlignment(.center)
 
-                Text(page.description)
+                Text(page.descriptionKey)
                     .font(.appBody)
                     .foregroundColor(.appTextSecondary)
                     .multilineTextAlignment(.center)
