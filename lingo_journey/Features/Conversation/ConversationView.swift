@@ -173,7 +173,7 @@ struct ConversationSection: View {
             }
 
             if originalText.isEmpty && translatedText.isEmpty && !isActive {
-                Text("Tap mic to speak")
+                Text("conversation.tapToSpeak")
                     .font(.appCallout)
                     .foregroundColor(.appTextMuted)
             }
