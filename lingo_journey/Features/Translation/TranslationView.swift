@@ -84,6 +84,10 @@ struct TranslationView: View {
                 }
                 .padding(.vertical, AppSpacing.xxl)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
         }
         .translationTask(configuration) { session in
             await performTranslation(session: session)
@@ -164,6 +168,8 @@ struct TranslationView: View {
             sourceText: sourceText
         )
 
+        // 先設為 nil 再設新值，確保 SwiftUI 偵測到變化並觸發 translationTask
+        configuration = nil
         configuration = TranslationSession.Configuration(
             source: sourceLanguage,
             target: targetLanguage
