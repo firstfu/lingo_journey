@@ -168,12 +168,16 @@ struct TranslationView: View {
             sourceText: sourceText
         )
 
-        // 先設為 nil 再設新值，確保 SwiftUI 偵測到變化並觸發 translationTask
+        // 先清除配置
         configuration = nil
-        configuration = TranslationSession.Configuration(
-            source: sourceLanguage,
-            target: targetLanguage
-        )
+
+        // 在下一個執行幀設置新配置，確保 SwiftUI 偵測到變化
+        Task { @MainActor in
+            configuration = TranslationSession.Configuration(
+                source: sourceLanguage,
+                target: targetLanguage
+            )
+        }
     }
 
     private func performTranslation(session: TranslationSession) async {
