@@ -18,7 +18,7 @@ struct TranslationView: View {
 
             ScrollView {
                 VStack(spacing: AppSpacing.xxl) {
-                    Text("Translate")
+                    Text("translation.title")
                         .font(.appTitle1)
                         .foregroundColor(.appTextPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -38,7 +38,7 @@ struct TranslationView: View {
                     .padding(.horizontal, AppSpacing.xl)
 
                     PrimaryButton(
-                        title: "Translate",
+                        title: String(localized: "translation.button"),
                         action: triggerTranslation,
                         isLoading: isTranslating,
                         isDisabled: sourceText.isEmpty
