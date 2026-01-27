@@ -30,7 +30,7 @@ struct HistoryView: View {
             Color.appBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("History")
+                Text("history.title")
                     .font(.appTitle1)
                     .foregroundColor(.appTextPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -42,8 +42,8 @@ struct HistoryView: View {
                     .padding(.vertical, AppSpacing.lg)
 
                 Picker("Filter", selection: $showFavoritesOnly) {
-                    Text("All").tag(false)
-                    Text("Favorites").tag(true)
+                    Text("history.all").tag(false)
+                    Text("history.favorites").tag(true)
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, AppSpacing.xl)
@@ -63,7 +63,7 @@ struct HistoryView: View {
                                     Button(role: .destructive) {
                                         deleteRecord(record)
                                     } label: {
-                                        Label("Delete", systemImage: "trash")
+                                        Label(String(localized: "history.delete"), systemImage: "trash")
                                     }
                                 }
                                 .swipeActions(edge: .leading) {
@@ -71,7 +71,7 @@ struct HistoryView: View {
                                         toggleFavorite(record)
                                     } label: {
                                         Label(
-                                            record.isFavorite ? "Unfavorite" : "Favorite",
+                                            record.isFavorite ? String(localized: "history.unfavorite") : String(localized: "history.favorite"),
                                             systemImage: record.isFavorite ? "star.slash" : "star.fill"
                                         )
                                     }
@@ -103,7 +103,7 @@ struct SearchBar: View {
             Image(systemName: "magnifyingglass")
                 .foregroundColor(.appTextMuted)
 
-            TextField("Search translations...", text: $text)
+            TextField(String(localized: "history.searchPlaceholder"), text: $text)
                 .font(.appCallout)
                 .foregroundColor(.appTextPrimary)
 
@@ -178,11 +178,11 @@ struct EmptyHistoryView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.appTextMuted)
 
-            Text(showFavoritesOnly ? "No favorites yet" : "No translation history")
+            Text(showFavoritesOnly ? "history.noFavorites" : "history.empty")
                 .font(.appHeadline)
                 .foregroundColor(.appTextSecondary)
 
-            Text(showFavoritesOnly ? "Star translations to save them here" : "Your translations will appear here")
+            Text(showFavoritesOnly ? "history.noFavoritesSubtitle" : "history.emptySubtitle")
                 .font(.appCallout)
                 .foregroundColor(.appTextMuted)
         }
