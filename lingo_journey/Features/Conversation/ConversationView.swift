@@ -90,8 +90,13 @@ struct ConversationView: View {
                 )
             }
         }
-        .translationTask(translationConfig) { session in
-            await performTranslation(session: session)
+        .background {
+            // 使用獨立的 view 來處理翻譯，用 id 強制重建
+            TranslationTaskView(
+                config: translationConfig,
+                triggerId: translationTrigger,
+                onTranslation: performTranslation
+            )
         }
         .sheet(isPresented: $showMyLanguagePicker) {
             LanguagePickerSheet(
@@ -459,6 +464,23 @@ struct MessageRow: View {
             return Color.appPrimary.opacity(0.15)
         }
         return Color.appSurface
+    }
+}
+
+// MARK: - Translation Task View
+
+struct TranslationTaskView: View {
+    let config: TranslationSession.Configuration?
+    let triggerId: UUID
+    let onTranslation: @MainActor @Sendable (TranslationSession) async -> Void
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .translationTask(config) { session in
+                await onTranslation(session)
+            }
+            .id(triggerId)
     }
 }
 
