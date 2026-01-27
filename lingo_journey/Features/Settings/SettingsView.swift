@@ -68,9 +68,15 @@ struct SettingsView: View {
         }
         .onChange(of: isGeoAwareEnabled) { _, enabled in
             if enabled {
-                locationService.requestAuthorization()
-            } else {
-                locationService.stopMonitoring()
+                Task {
+                    _ = await locationService.requestAuthorization()
+                    await locationService.refresh()
+                }
+            }
+        }
+        .task {
+            if isGeoAwareEnabled {
+                await locationService.initialize()
             }
         }
     }

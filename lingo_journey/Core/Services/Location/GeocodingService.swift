@@ -3,20 +3,25 @@ import CoreLocation
 import MapKit
 
 enum GeocodingError: Error {
+    case requestFailed
     case noResult
     case noCountryCode
 }
 
 final class GeocodingService {
     func reverseGeocode(_ location: CLLocation) async throws -> String {
-        let request = MKReverseGeocodingRequest(location)
-        let response = try await request.start()
+        guard let request = MKReverseGeocodingRequest(location: location) else {
+            throw GeocodingError.requestFailed
+        }
 
-        guard let result = response.results.first else {
+        let mapItems = try await request.mapItems
+
+        guard let mapItem = mapItems.first else {
             throw GeocodingError.noResult
         }
 
-        guard let countryCode = result.isoCountryCode else {
+        // 從 MKMapItem 的 placemark 獲取國家代碼
+        guard let countryCode = mapItem.placemark.countryCode else {
             throw GeocodingError.noCountryCode
         }
 
