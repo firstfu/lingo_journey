@@ -400,6 +400,7 @@
 				DEVELOPMENT_TEAM = WY468E45SJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "LingoJourney needs camera access to scan and translate text from menus, signs, and documents.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "LingoJourney uses your location to suggest relevant language packs when you travel.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LingoJourney needs access to your microphone to enable voice translation features.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "LingoJourney needs access to speech recognition to convert your voice to text for translation.";
@@ -435,6 +436,7 @@
 				DEVELOPMENT_TEAM = WY468E45SJ;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "LingoJourney needs camera access to scan and translate text from menus, signs, and documents.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "LingoJourney uses your location to suggest relevant language packs when you travel.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LingoJourney needs access to your microphone to enable voice translation features.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "LingoJourney needs access to speech recognition to convert your voice to text for translation.";
