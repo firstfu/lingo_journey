@@ -15,6 +15,9 @@ struct ConversationView: View {
     @State private var isListening = false
     @State private var audioLevel: Float = 0.0
 
+    @State private var showMyLanguagePicker = false
+    @State private var showTheirLanguagePicker = false
+
     @State private var speechService = SpeechService()
     @State private var translationConfig: TranslationSession.Configuration?
 
@@ -32,10 +35,13 @@ struct ConversationView: View {
                 )
                 .rotationEffect(.degrees(180))
 
-                ConversationDivider(
-                    topLanguage: theirLanguage,
-                    bottomLanguage: myLanguage,
-                    onSwap: swapLanguages
+                LanguageSelector(
+                    sourceLanguage: $myLanguage,
+                    targetLanguage: $theirLanguage,
+                    size: .large,
+                    onSwap: swapLanguages,
+                    onSourceTap: { showMyLanguagePicker = true },
+                    onTargetTap: { showTheirLanguagePicker = true }
                 )
 
                 ConversationSection(
@@ -58,6 +64,24 @@ struct ConversationView: View {
         }
         .translationTask(translationConfig) { session in
             await performTranslation(session: session)
+        }
+        .sheet(isPresented: $showMyLanguagePicker) {
+            LanguagePickerSheet(
+                title: String(localized: "選擇我的語言"),
+                currentLanguage: myLanguage,
+                onSelect: { language, _ in
+                    myLanguage = language
+                }
+            )
+        }
+        .sheet(isPresented: $showTheirLanguagePicker) {
+            LanguagePickerSheet(
+                title: String(localized: "選擇對方語言"),
+                currentLanguage: theirLanguage,
+                onSelect: { language, _ in
+                    theirLanguage = language
+                }
+            )
         }
         .onChange(of: speechService.recognizedText) { _, newValue in
             if isMyTurn {
@@ -180,43 +204,6 @@ struct ConversationSection: View {
         }
         .padding(AppSpacing.xxxl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-}
-
-struct ConversationDivider: View {
-    let topLanguage: Locale.Language
-    let bottomLanguage: Locale.Language
-    let onSwap: () -> Void
-
-    var body: some View {
-        HStack {
-            Text(displayName(for: bottomLanguage))
-                .font(.appCaption)
-                .foregroundColor(.appTextMuted)
-
-            Spacer()
-
-            Button(action: onSwap) {
-                Image(systemName: "arrow.up.arrow.down")
-                    .font(.system(size: 14))
-                    .foregroundColor(.appPrimary)
-            }
-
-            Spacer()
-
-            Text(displayName(for: topLanguage))
-                .font(.appCaption)
-                .foregroundColor(.appTextMuted)
-                .rotationEffect(.degrees(180))
-        }
-        .padding(.horizontal, AppSpacing.xl)
-        .padding(.vertical, AppSpacing.md)
-        .background(Color.appBorder.opacity(0.5))
-    }
-
-    private func displayName(for language: Locale.Language) -> String {
-        let locale = Locale(identifier: language.minimalIdentifier)
-        return locale.localizedString(forIdentifier: language.minimalIdentifier)?.capitalized ?? language.minimalIdentifier
     }
 }
 

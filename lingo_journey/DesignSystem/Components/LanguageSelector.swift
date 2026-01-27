@@ -1,8 +1,42 @@
 import SwiftUI
 
+enum LanguageSelectorSize {
+    case regular
+    case large
+
+    var font: Font {
+        switch self {
+        case .regular: return .appHeadline
+        case .large: return .appTitle2
+        }
+    }
+
+    var pillVerticalPadding: CGFloat {
+        switch self {
+        case .regular: return AppSpacing.lg
+        case .large: return AppSpacing.xl
+        }
+    }
+
+    var swapButtonSize: CGFloat {
+        switch self {
+        case .regular: return 36
+        case .large: return 44
+        }
+    }
+
+    var swapIconSize: CGFloat {
+        switch self {
+        case .regular: return 16
+        case .large: return 20
+        }
+    }
+}
+
 struct LanguageSelector: View {
     @Binding var sourceLanguage: Locale.Language
     @Binding var targetLanguage: Locale.Language
+    var size: LanguageSelectorSize = .regular
     var onSwap: () -> Void
     var onSourceTap: () -> Void
     var onTargetTap: () -> Void
@@ -11,20 +45,22 @@ struct LanguageSelector: View {
         HStack(spacing: AppSpacing.lg) {
             LanguagePill(
                 language: sourceLanguage,
+                size: size,
                 action: onSourceTap
             )
 
             Button(action: onSwap) {
                 Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: size.swapIconSize, weight: .medium))
                     .foregroundColor(.appPrimary)
-                    .frame(width: 36, height: 36)
+                    .frame(width: size.swapButtonSize, height: size.swapButtonSize)
                     .background(Color.appSurface)
                     .clipShape(Circle())
             }
 
             LanguagePill(
                 language: targetLanguage,
+                size: size,
                 action: onTargetTap
             )
         }
@@ -34,15 +70,16 @@ struct LanguageSelector: View {
 
 struct LanguagePill: View {
     let language: Locale.Language
+    var size: LanguageSelectorSize = .regular
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(displayName(for: language))
-                .font(.appHeadline)
+                .font(size.font)
                 .foregroundColor(.appTextPrimary)
                 .padding(.horizontal, AppSpacing.xl)
-                .padding(.vertical, AppSpacing.lg)
+                .padding(.vertical, size.pillVerticalPadding)
                 .background(Color.appSurface)
                 .clipShape(Capsule())
                 .overlay(
