@@ -404,6 +404,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "LingoJourney uses your location to suggest relevant language packs when you travel.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LingoJourney needs access to your microphone to enable voice translation features.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "LingoJourney needs access to speech recognition to convert your voice to text for translation.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -440,6 +441,7 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "LingoJourney uses your location to suggest relevant language packs when you travel.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LingoJourney needs access to your microphone to enable voice translation features.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "LingoJourney needs access to speech recognition to convert your voice to text for translation.";
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
