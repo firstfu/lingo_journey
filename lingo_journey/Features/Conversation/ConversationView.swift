@@ -39,6 +39,7 @@ struct ConversationView: View {
     @State private var translationConfig: TranslationSession.Configuration?
     @State private var pendingTranslationText = ""
     @State private var pendingIsFromMe = true
+    @State private var translationTrigger = UUID()  // 用於強制重新觸發翻譯
 
     // Silence detection
     @State private var silenceTimer: Timer?
@@ -63,7 +64,9 @@ struct ConversationView: View {
                     onLanguageTap: { showTheirLanguagePicker = true },
                     onMicTap: { startListening(isMe: false) },
                     onStopTap: stopListening,
-                    isListening: isListening && currentSpeakerIsMe == false
+                    isListening: isListening && currentSpeakerIsMe == false,
+                    onClearTap: clearConversation,
+                    showClearButton: !messages.isEmpty && !isListening
                 )
                 .rotationEffect(.degrees(180))
 
@@ -81,7 +84,9 @@ struct ConversationView: View {
                     onLanguageTap: { showMyLanguagePicker = true },
                     onMicTap: { startListening(isMe: true) },
                     onStopTap: stopListening,
-                    isListening: isListening && currentSpeakerIsMe == true
+                    isListening: isListening && currentSpeakerIsMe == true,
+                    onClearTap: clearConversation,
+                    showClearButton: !messages.isEmpty && !isListening
                 )
             }
         }
@@ -203,17 +208,33 @@ struct ConversationView: View {
         pendingTranslationText = currentText
         pendingIsFromMe = isFromMe
 
-        if isFromMe {
-            translationConfig = TranslationSession.Configuration(
-                source: myLanguage,
-                target: theirLanguage
-            )
-        } else {
-            translationConfig = TranslationSession.Configuration(
-                source: theirLanguage,
-                target: myLanguage
-            )
+        // 先清除舊的配置，確保可以重新觸發
+        translationConfig = nil
+
+        // 使用 Task 延遲一下再設置新配置，確保 SwiftUI 能偵測到變化
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(50))
+
+            translationTrigger = UUID()  // 強制更新
+
+            if isFromMe {
+                translationConfig = TranslationSession.Configuration(
+                    source: myLanguage,
+                    target: theirLanguage
+                )
+            } else {
+                translationConfig = TranslationSession.Configuration(
+                    source: theirLanguage,
+                    target: myLanguage
+                )
+            }
         }
+    }
+
+    private func clearConversation() {
+        messages.removeAll()
+        currentText = ""
+        pendingTranslationText = ""
     }
 
     private func performTranslation(session: TranslationSession) async {
@@ -284,6 +305,8 @@ struct ConversationHalf: View {
     let onMicTap: () -> Void
     let onStopTap: () -> Void
     let isListening: Bool
+    var onClearTap: () -> Void = {}
+    var showClearButton: Bool = false
 
     private var displayName: String {
         let locale = Locale(identifier: language.minimalIdentifier)
@@ -310,6 +333,18 @@ struct ConversationHalf: View {
                 }
 
                 Spacer()
+
+                // Clear button
+                if showClearButton {
+                    Button(action: onClearTap) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16))
+                            .foregroundColor(.appTextSecondary)
+                            .frame(width: 40, height: 40)
+                            .background(Color.appSurface)
+                            .clipShape(Circle())
+                    }
+                }
 
                 // Mic button
                 Button(action: isListening ? onStopTap : onMicTap) {

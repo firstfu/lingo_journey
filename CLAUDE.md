@@ -22,8 +22,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build (use iPhone 17 Pro simulator)
 xcodebuild -project lingo_journey.xcodeproj -scheme lingo_journey -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 
-# Run tests
+# Run all tests
 xcodebuild -project lingo_journey.xcodeproj -scheme lingo_journey -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+
+# Run a single test class
+xcodebuild -project lingo_journey.xcodeproj -scheme lingo_journey -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:lingo_journeyTests/TestClassName
+
+# Run a single test method
+xcodebuild -project lingo_journey.xcodeproj -scheme lingo_journey -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test -only-testing:lingo_journeyTests/TestClassName/testMethodName
 
 # Open in Xcode
 open lingo_journey.xcodeproj
@@ -46,6 +52,25 @@ open lingo_journey.xcodeproj
 final class SomeService {
     static let shared = SomeService()
     private init() {}
+}
+```
+
+**Environment Injection**: Global services are injected via `.environment()` in `lingo_journeyApp.swift`:
+```swift
+.environment(languageManager)          // Custom @Observable
+.environment(\.locale, ...)            // System environment values
+```
+
+**Translation API**: Use `.translationTask(configuration)` modifier with `TranslationSession.Configuration`:
+```swift
+@State private var configuration: TranslationSession.Configuration?
+
+// Trigger translation by setting configuration
+configuration = TranslationSession.Configuration(source: sourceLanguage, target: targetLanguage)
+
+// Handle in view modifier
+.translationTask(configuration) { session in
+    let response = try await session.translate(text)
 }
 ```
 
@@ -80,3 +105,14 @@ Use these prefixed tokens instead of raw values:
 | Speech | Speech-to-text with `requiresOnDeviceRecognition` |
 | ActivityKit | Live Activity for translation status |
 | CoreLocation + MapKit | Location-based language suggestions |
+| VisionKit | DataScannerViewController for OCR text recognition |
+
+## Key Files
+
+| Purpose | Location |
+|---------|----------|
+| App Entry | `lingo_journey/lingo_journeyApp.swift` |
+| Main Navigation | `Features/MainTabView.swift` |
+| Translation Logic | `Features/Translation/TranslationView.swift` |
+| Live Activity | `LiveActivity/TranslationActivity.swift` |
+| String Catalog | `Resources/Localizable.xcstrings` |
