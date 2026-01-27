@@ -1,6 +1,7 @@
 import SwiftData
 import SwiftUI
 import Translation
+import AVFoundation
 
 struct TranslationView: View {
     @State private var sourceLanguage = Locale.Language(identifier: "en")
@@ -9,6 +10,10 @@ struct TranslationView: View {
     @State private var translatedText = ""
     @State private var isTranslating = false
     @State private var configuration: TranslationSession.Configuration?
+
+    // Scanner states
+    @State private var showScanner = false
+    @State private var showCameraPermissionAlert = false
 
     @Environment(\.modelContext) private var modelContext
 
@@ -33,6 +38,7 @@ struct TranslationView: View {
                     TranslationInputCard(
                         languageName: displayName(for: sourceLanguage),
                         text: $sourceText,
+                        onCameraTap: handleCameraTap,
                         onMicTap: { }
                     )
                     .padding(.horizontal, AppSpacing.xl)
@@ -64,6 +70,22 @@ struct TranslationView: View {
             await performTranslation(session: session)
         }
         .animation(.spring(duration: 0.3), value: translatedText)
+        .fullScreenCover(isPresented: $showScanner) {
+            ScannerView(
+                sourceLanguage: sourceLanguage,
+                targetLanguage: targetLanguage
+            )
+        }
+        .alert("需要相機權限", isPresented: $showCameraPermissionAlert) {
+            Button("取消", role: .cancel) { }
+            Button("開啟設定") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+        } message: {
+            Text("請在設定中開啟相機權限以使用掃描翻譯功能")
+        }
     }
 
     private func swapLanguages() {
@@ -119,6 +141,31 @@ struct TranslationView: View {
     private func displayName(for language: Locale.Language) -> String {
         let locale = Locale(identifier: language.minimalIdentifier)
         return locale.localizedString(forIdentifier: language.minimalIdentifier)?.capitalized ?? language.minimalIdentifier
+    }
+
+    // MARK: - Camera
+    private func handleCameraTap() {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+
+        switch status {
+        case .authorized:
+            showScanner = true
+        case .notDetermined:
+            Task {
+                let granted = await AVCaptureDevice.requestAccess(for: .video)
+                await MainActor.run {
+                    if granted {
+                        showScanner = true
+                    } else {
+                        showCameraPermissionAlert = true
+                    }
+                }
+            }
+        case .denied, .restricted:
+            showCameraPermissionAlert = true
+        @unknown default:
+            showCameraPermissionAlert = true
+        }
     }
 }
 
