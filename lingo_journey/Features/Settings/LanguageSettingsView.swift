@@ -12,10 +12,11 @@ struct LanguageSettingsView: View {
                     ForEach(AppLanguage.allCases) { language in
                         LanguageRow(
                             language: language,
-                            isSelected: languageManager.selectedLanguage == language
-                        ) {
-                            languageManager.selectedLanguage = language
-                        }
+                            isSelected: languageManager.selectedLanguage == language,
+                            action: {
+                                languageManager.selectedLanguage = language
+                            }
+                        )
                     }
                 }
                 .background(Color.appSurface)
