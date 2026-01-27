@@ -13,6 +13,7 @@ struct TranslationView: View {
     @State private var isTranslating = false
     @State private var configuration: TranslationSession.Configuration?
     @State private var translationTrigger = UUID()
+    @State private var currentRecord: TranslationRecord?
 
     // Scanner states
     @State private var showScanner = false
@@ -82,7 +83,8 @@ struct TranslationView: View {
                             translatedText: translatedText,
                             onCopy: copyToClipboard,
                             onSpeak: { },
-                            onFavorite: saveToFavorites
+                            onFavorite: toggleFavorite,
+                            isFavorite: currentRecord?.isFavorite ?? false
                         )
                         .padding(.horizontal, AppSpacing.xl)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -241,6 +243,16 @@ struct TranslationView: View {
                 translatedText = response.targetText
                 isTranslating = false
                 configuration = nil
+
+                // 自動保存到歷史記錄
+                let record = TranslationRecord(
+                    sourceText: textToTranslate,
+                    translatedText: response.targetText,
+                    sourceLanguage: sourceLanguage.minimalIdentifier,
+                    targetLanguage: targetLanguage.minimalIdentifier
+                )
+                modelContext.insert(record)
+                currentRecord = record
             }
 
             // End Live Activity after showing result
@@ -261,15 +273,9 @@ struct TranslationView: View {
         UIPasteboard.general.string = translatedText
     }
 
-    private func saveToFavorites() {
-        let record = TranslationRecord(
-            sourceText: sourceText,
-            translatedText: translatedText,
-            sourceLanguage: sourceLanguage.minimalIdentifier,
-            targetLanguage: targetLanguage.minimalIdentifier
-        )
-        record.isFavorite = true
-        modelContext.insert(record)
+    private func toggleFavorite() {
+        guard let record = currentRecord else { return }
+        record.isFavorite.toggle()
     }
 
     private func displayName(for language: Locale.Language) -> String {
