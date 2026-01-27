@@ -42,20 +42,28 @@ final class ScannerViewModel {
                 guard !transcript.isEmpty else { continue }
 
                 // Check if this text already exists
+                // Convert bounds to CGRect
+                let boundingBox = CGRect(
+                    x: text.bounds.topLeft.x,
+                    y: text.bounds.topLeft.y,
+                    width: text.bounds.topRight.x - text.bounds.topLeft.x,
+                    height: text.bounds.bottomLeft.y - text.bounds.topLeft.y
+                )
+
                 if let existingIndex = scanResults.firstIndex(where: { $0.originalText == transcript }) {
                     let existing = scanResults[existingIndex]
                     let updated = ScanResult(
                         id: existing.id,
                         originalText: existing.originalText,
                         translatedText: existing.translatedText,
-                        boundingBox: text.bounds,
+                        boundingBox: boundingBox,
                         isTranslating: existing.isTranslating
                     )
                     newResults.append(updated)
                 } else {
                     let result = ScanResult(
                         originalText: transcript,
-                        boundingBox: text.bounds,
+                        boundingBox: boundingBox,
                         isTranslating: true
                     )
                     newResults.append(result)
