@@ -2,81 +2,110 @@ import SwiftUI
 
 struct SettingsView: View {
     @State private var locationService = LocationService()
+    @State private var languageManager = LanguageManager.shared
     @State private var isGeoAwareEnabled = true
     @State private var showLanguagePackages = false
 
     var body: some View {
-        ZStack {
-            Color.appBackground.ignoresSafeArea()
+        NavigationStack {
+            ZStack {
+                Color.appBackground.ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: AppSpacing.xxl) {
-                    Text("Settings")
-                        .font(.appTitle1)
-                        .foregroundColor(.appTextPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, AppSpacing.xl)
+                ScrollView {
+                    VStack(spacing: AppSpacing.xxl) {
+                        Text("settings.title")
+                            .font(.appTitle1)
+                            .foregroundColor(.appTextPrimary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, AppSpacing.xl)
 
-                    SettingsSection(title: "Languages") {
-                        SettingsRow(
-                            icon: "arrow.down.circle",
-                            title: "Offline Languages",
-                            subtitle: "Download languages for offline use"
-                        ) {
-                            showLanguagePackages = true
+                        SettingsSection(title: String(localized: "settings.languages")) {
+                            NavigationLink {
+                                LanguageSettingsView()
+                            } label: {
+                                HStack(spacing: AppSpacing.lg) {
+                                    Image(systemName: "globe")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.appPrimary)
+                                        .frame(width: 28)
+
+                                    Text("settings.appLanguage")
+                                        .font(.appBody)
+                                        .foregroundColor(.appTextPrimary)
+
+                                    Spacer()
+
+                                    Text(languageManager.currentLanguageDisplayName)
+                                        .font(.appBody)
+                                        .foregroundColor(.appTextMuted)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.appTextMuted)
+                                }
+                                .padding(AppSpacing.xl)
+                            }
+
+                            SettingsRow(
+                                icon: "arrow.down.circle",
+                                title: String(localized: "settings.offlineLanguages"),
+                                subtitle: String(localized: "settings.offlineLanguages.subtitle")
+                            ) {
+                                showLanguagePackages = true
+                            }
                         }
-                    }
 
-                    SettingsSection(title: "Location") {
-                        SettingsToggleRow(
-                            icon: "location",
-                            title: "Geo-Aware Suggestions",
-                            subtitle: "Suggest languages based on your location",
-                            isOn: $isGeoAwareEnabled
-                        )
-
-                        if let countryCode = locationService.countryCode {
-                            SettingsInfoRow(
-                                icon: "globe",
-                                title: "Current Region",
-                                value: countryCode
+                        SettingsSection(title: String(localized: "settings.location")) {
+                            SettingsToggleRow(
+                                icon: "location",
+                                title: String(localized: "settings.geoAware"),
+                                subtitle: String(localized: "settings.geoAware.subtitle"),
+                                isOn: $isGeoAwareEnabled
                             )
+
+                            if let countryCode = locationService.countryCode {
+                                SettingsInfoRow(
+                                    icon: "globe",
+                                    title: String(localized: "settings.currentRegion"),
+                                    value: countryCode
+                                )
+                            }
+                        }
+
+                        SettingsSection(title: String(localized: "settings.about")) {
+                            SettingsInfoRow(
+                                icon: "info.circle",
+                                title: String(localized: "settings.version"),
+                                value: "1.0.0"
+                            )
+
+                            SettingsRow(
+                                icon: "hand.raised",
+                                title: String(localized: "settings.privacyPolicy"),
+                                subtitle: nil
+                            ) {
+                                // Open privacy policy
+                            }
                         }
                     }
-
-                    SettingsSection(title: "About") {
-                        SettingsInfoRow(
-                            icon: "info.circle",
-                            title: "Version",
-                            value: "1.0.0"
-                        )
-
-                        SettingsRow(
-                            icon: "hand.raised",
-                            title: "Privacy Policy",
-                            subtitle: nil
-                        ) {
-                            // Open privacy policy
-                        }
+                    .padding(.vertical, AppSpacing.xxl)
+                }
+            }
+            .sheet(isPresented: $showLanguagePackages) {
+                LanguagePackagesView()
+            }
+            .onChange(of: isGeoAwareEnabled) { _, enabled in
+                if enabled {
+                    Task {
+                        _ = await locationService.requestAuthorization()
+                        await locationService.refresh()
                     }
                 }
-                .padding(.vertical, AppSpacing.xxl)
             }
-        }
-        .sheet(isPresented: $showLanguagePackages) {
-            LanguagePackagesView()
-        }
-        .onChange(of: isGeoAwareEnabled) { _, enabled in
-            if enabled {
-                Task {
-                    _ = await locationService.requestAuthorization()
-                    await locationService.refresh()
+            .task {
+                if isGeoAwareEnabled {
+                    await locationService.initialize()
                 }
-            }
-        }
-        .task {
-            if isGeoAwareEnabled {
-                await locationService.initialize()
             }
         }
     }
