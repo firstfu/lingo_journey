@@ -6,12 +6,12 @@ enum AppTab: Int, CaseIterable {
     case history
     case settings
 
-    var title: String {
+    var titleKey: LocalizedStringKey {
         switch self {
-        case .translate: return "翻譯"
-        case .voice: return "語音"
-        case .history: return "歷史"
-        case .settings: return "設定"
+        case .translate: return "tab.translate"
+        case .voice: return "tab.voice"
+        case .history: return "tab.history"
+        case .settings: return "tab.settings"
         }
     }
 
@@ -33,7 +33,7 @@ struct MainTabView: View {
             ForEach(AppTab.allCases, id: \.self) { tab in
                 tabContent(for: tab)
                     .tabItem {
-                        Label(tab.title, systemImage: tab.icon)
+                        Label(tab.titleKey, systemImage: tab.icon)
                     }
                     .tag(tab)
             }
