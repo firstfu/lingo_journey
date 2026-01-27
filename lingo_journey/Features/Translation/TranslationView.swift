@@ -16,6 +16,13 @@ struct TranslationView: View {
     @State private var showScanner = false
     @State private var showCameraPermissionAlert = false
 
+    // Language picker states
+    @State private var showSourceLanguagePicker = false
+    @State private var showTargetLanguagePicker = false
+    @State private var showDownloadAlert = false
+    @State private var pendingLanguage: Locale.Language?
+    @State private var pendingLanguageIsSource = true
+
     @Environment(\.modelContext) private var modelContext
 
     private let liveActivityManager = LiveActivityManager.shared
@@ -35,7 +42,9 @@ struct TranslationView: View {
                     LanguageSelector(
                         sourceLanguage: $sourceLanguage,
                         targetLanguage: $targetLanguage,
-                        onSwap: swapLanguages
+                        onSwap: swapLanguages,
+                        onSourceTap: { showSourceLanguagePicker = true },
+                        onTargetTap: { showTargetLanguagePicker = true }
                     )
 
                     TranslationInputCard(
@@ -89,6 +98,30 @@ struct TranslationView: View {
         } message: {
             Text("請在設定中開啟相機權限以使用掃描翻譯功能")
         }
+        .sheet(isPresented: $showSourceLanguagePicker) {
+            LanguagePickerSheet(
+                title: String(localized: "language.picker.source"),
+                currentLanguage: sourceLanguage
+            ) { language, isDownloaded in
+                handleLanguageSelection(language: language, isDownloaded: isDownloaded, isSource: true)
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .sheet(isPresented: $showTargetLanguagePicker) {
+            LanguagePickerSheet(
+                title: String(localized: "language.picker.target"),
+                currentLanguage: targetLanguage
+            ) { language, isDownloaded in
+                handleLanguageSelection(language: language, isDownloaded: isDownloaded, isSource: false)
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .languageDownloadAlert(
+            isPresented: $showDownloadAlert,
+            languageName: pendingLanguage.map { displayName(for: $0) } ?? "",
+            onDownload: handleDownloadLanguage,
+            onUseTemporarily: handleUseTemporarily
+        )
     }
 
     private func swapLanguages() {
@@ -193,6 +226,45 @@ struct TranslationView: View {
         @unknown default:
             showCameraPermissionAlert = true
         }
+    }
+
+    // MARK: - Language Selection
+    private func handleLanguageSelection(language: Locale.Language, isDownloaded: Bool, isSource: Bool) {
+        if isDownloaded {
+            if isSource {
+                sourceLanguage = language
+            } else {
+                targetLanguage = language
+            }
+        } else {
+            pendingLanguage = language
+            pendingLanguageIsSource = isSource
+            showDownloadAlert = true
+        }
+    }
+
+    private func handleDownloadLanguage() {
+        guard let language = pendingLanguage else { return }
+
+        // TODO: Implement actual download using LanguageAvailability
+        // For now, just set the language
+        if pendingLanguageIsSource {
+            sourceLanguage = language
+        } else {
+            targetLanguage = language
+        }
+        pendingLanguage = nil
+    }
+
+    private func handleUseTemporarily() {
+        guard let language = pendingLanguage else { return }
+
+        if pendingLanguageIsSource {
+            sourceLanguage = language
+        } else {
+            targetLanguage = language
+        }
+        pendingLanguage = nil
     }
 }
 

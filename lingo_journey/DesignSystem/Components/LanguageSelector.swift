@@ -4,12 +4,14 @@ struct LanguageSelector: View {
     @Binding var sourceLanguage: Locale.Language
     @Binding var targetLanguage: Locale.Language
     var onSwap: () -> Void
+    var onSourceTap: () -> Void
+    var onTargetTap: () -> Void
 
     var body: some View {
         HStack(spacing: AppSpacing.lg) {
             LanguagePill(
                 language: sourceLanguage,
-                action: { }
+                action: onSourceTap
             )
 
             Button(action: onSwap) {
@@ -23,7 +25,7 @@ struct LanguageSelector: View {
 
             LanguagePill(
                 language: targetLanguage,
-                action: { }
+                action: onTargetTap
             )
         }
         .padding(.horizontal, AppSpacing.xl)
@@ -62,7 +64,9 @@ struct LanguagePill: View {
         LanguageSelector(
             sourceLanguage: .constant(Locale.Language(identifier: "en")),
             targetLanguage: .constant(Locale.Language(identifier: "zh-Hant")),
-            onSwap: {}
+            onSwap: {},
+            onSourceTap: {},
+            onTargetTap: {}
         )
     }
 }
