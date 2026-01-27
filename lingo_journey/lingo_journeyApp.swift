@@ -10,9 +10,13 @@ import SwiftData
 
 @main
 struct lingo_journeyApp: App {
+    @State private var languageManager = LanguageManager.shared
+
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(\.locale, languageManager.currentLocale)
+                .environment(languageManager)
         }
         .modelContainer(for: [
             TranslationRecord.self,
