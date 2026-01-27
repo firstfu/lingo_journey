@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Project Overview
+
+**Lingo Journey** 是一款 iOS 翻譯應用程式，主打全離線使用能力。
+
+### 核心功能
+- **即時翻譯** - 使用 Apple Translation 框架，裝置端離線翻譯
+- **語音輸入** - 離線語音辨識 (Speech framework)
+- **位置感知** - 根據 GPS 位置自動建議當地語言
+- **Live Activity** - 動態島與鎖定畫面顯示翻譯進度
+- **翻譯歷史** - SwiftData 儲存，支援收藏功能
+
+### 系統需求
+- iOS 18.0+ / Xcode 16.0+ / Swift 6.0+
+
 ## Build Commands
 
 ```bash
