@@ -12,6 +12,7 @@ struct TranslationView: View {
     @State private var translatedText = ""
     @State private var isTranslating = false
     @State private var configuration: TranslationSession.Configuration?
+    @State private var translationTrigger = UUID()
 
     // Scanner states
     @State private var showScanner = false
@@ -28,6 +29,11 @@ struct TranslationView: View {
     @State private var showDownloadAlert = false
     @State private var pendingLanguage: Locale.Language?
     @State private var pendingLanguageIsSource = true
+
+    // Translation guide states
+    @State private var showTranslationGuide = false
+    @AppStorage("hasSeenTranslationGuide") private var hasSeenGuide = false
+    @State private var dontShowGuideAgain = false
 
     @Environment(\.modelContext) private var modelContext
 
@@ -92,6 +98,7 @@ struct TranslationView: View {
         .translationTask(configuration) { session in
             await performTranslation(session: session)
         }
+        .id(translationTrigger)
         .animation(.spring(duration: 0.3), value: translatedText)
         .onChange(of: speechService.recognizedText) { _, newValue in
             sourceText = newValue
@@ -146,6 +153,18 @@ struct TranslationView: View {
             onDownload: handleDownloadLanguage,
             onUseTemporarily: handleUseTemporarily
         )
+        .sheet(isPresented: $showTranslationGuide) {
+            TranslationGuideSheet(
+                isPresented: $showTranslationGuide,
+                dontShowAgain: $dontShowGuideAgain
+            ) {
+                // 用戶確認後，更新設定並開始翻譯
+                if dontShowGuideAgain {
+                    hasSeenGuide = true
+                }
+                startTranslation()
+            }
+        }
     }
 
     private func swapLanguages() {
@@ -161,6 +180,26 @@ struct TranslationView: View {
     private func triggerTranslation() {
         guard !sourceText.isEmpty else { return }
 
+        Task {
+            // 檢查語言包是否已下載
+            let isInstalled = await checkLanguageAvailability(
+                source: sourceLanguage,
+                target: targetLanguage
+            )
+
+            await MainActor.run {
+                if !isInstalled && !hasSeenGuide {
+                    // 語言包未下載且用戶未看過引導，顯示引導提示
+                    showTranslationGuide = true
+                } else {
+                    // 直接開始翻譯
+                    startTranslation()
+                }
+            }
+        }
+    }
+
+    private func startTranslation() {
         // Start Live Activity
         liveActivityManager.startActivity(
             sourceLanguage: displayName(for: sourceLanguage),
@@ -168,16 +207,21 @@ struct TranslationView: View {
             sourceText: sourceText
         )
 
-        // 先清除配置
-        configuration = nil
+        // 生成新的 UUID 強制 SwiftUI 重建 translationTask
+        translationTrigger = UUID()
+        configuration = TranslationSession.Configuration(
+            source: sourceLanguage,
+            target: targetLanguage
+        )
+    }
 
-        // 在下一個執行幀設置新配置，確保 SwiftUI 偵測到變化
-        Task { @MainActor in
-            configuration = TranslationSession.Configuration(
-                source: sourceLanguage,
-                target: targetLanguage
-            )
-        }
+    private func checkLanguageAvailability(
+        source: Locale.Language,
+        target: Locale.Language
+    ) async -> Bool {
+        let availability = LanguageAvailability()
+        let status = await availability.status(from: source, to: target)
+        return status == .installed
     }
 
     private func performTranslation(session: TranslationSession) async {
