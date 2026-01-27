@@ -35,7 +35,7 @@ struct SettingsView: View {
                             isOn: $isGeoAwareEnabled
                         )
 
-                        if let countryCode = locationService.currentCountryCode {
+                        if let countryCode = locationService.countryCode {
                             SettingsInfoRow(
                                 icon: "globe",
                                 title: "Current Region",
