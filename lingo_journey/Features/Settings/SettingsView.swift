@@ -92,7 +92,12 @@ struct SettingsView: View {
                 }
             }
             .sheet(isPresented: $showLanguagePackages) {
-                LanguagePackagesView()
+                LanguagePickerSheet(
+                    title: String(localized: "settings.offlineLanguages"),
+                    dismissOnSelect: false
+                ) { _, _ in
+                    // 下載由 LanguagePickerSheet 內部處理
+                }
             }
             .onChange(of: isGeoAwareEnabled) { _, enabled in
                 if enabled {

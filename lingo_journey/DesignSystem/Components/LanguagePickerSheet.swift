@@ -3,13 +3,27 @@ import Translation
 
 struct LanguagePickerSheet: View {
     let title: String
-    let currentLanguage: Locale.Language
+    let currentLanguage: Locale.Language?
+    let dismissOnSelect: Bool
     let onSelect: (Locale.Language, Bool) -> Void  // (language, isDownloaded)
 
     @Environment(\.dismiss) private var dismiss
     @State private var supportedLanguages: [Locale.Language] = []
     @State private var downloadedLanguages: Set<String> = []
+    @State private var downloadingLanguages: Set<String> = []
     @State private var isLoading = true
+
+    init(
+        title: String,
+        currentLanguage: Locale.Language? = nil,
+        dismissOnSelect: Bool = true,
+        onSelect: @escaping (Locale.Language, Bool) -> Void
+    ) {
+        self.title = title
+        self.currentLanguage = currentLanguage
+        self.dismissOnSelect = dismissOnSelect
+        self.onSelect = onSelect
+    }
 
     var body: some View {
         NavigationStack {
@@ -56,11 +70,14 @@ struct LanguagePickerSheet: View {
                     ForEach(downloadedLanguagesList, id: \.minimalIdentifier) { language in
                         LanguagePickerRow(
                             language: language,
-                            isSelected: language.minimalIdentifier == currentLanguage.minimalIdentifier,
-                            isDownloaded: true
+                            isSelected: currentLanguage.map { language.minimalIdentifier == $0.minimalIdentifier } ?? false,
+                            isDownloaded: true,
+                            isDownloading: false
                         ) {
                             onSelect(language, true)
-                            dismiss()
+                            if dismissOnSelect {
+                                dismiss()
+                            }
                         }
                     }
                 } header: {
@@ -76,11 +93,15 @@ struct LanguagePickerSheet: View {
                     ForEach(availableLanguagesList, id: \.minimalIdentifier) { language in
                         LanguagePickerRow(
                             language: language,
-                            isSelected: language.minimalIdentifier == currentLanguage.minimalIdentifier,
-                            isDownloaded: false
+                            isSelected: currentLanguage.map { language.minimalIdentifier == $0.minimalIdentifier } ?? false,
+                            isDownloaded: false,
+                            isDownloading: downloadingLanguages.contains(language.minimalIdentifier)
                         ) {
+                            startDownload(language)
                             onSelect(language, false)
-                            dismiss()
+                            if dismissOnSelect {
+                                dismiss()
+                            }
                         }
                     }
                 } header: {
@@ -111,12 +132,39 @@ struct LanguagePickerSheet: View {
 
         isLoading = false
     }
+
+    private func startDownload(_ language: Locale.Language) {
+        let identifier = language.minimalIdentifier
+        guard !downloadingLanguages.contains(identifier) else { return }
+
+        downloadingLanguages.insert(identifier)
+
+        Task {
+            let availability = LanguageAvailability()
+
+            // 等待一段時間後檢查下載狀態（實際下載由系統處理）
+            try? await Task.sleep(for: .seconds(2))
+
+            let status = await availability.status(
+                from: language,
+                to: Locale.Language(identifier: "en")
+            )
+
+            await MainActor.run {
+                downloadingLanguages.remove(identifier)
+                if status == .installed {
+                    downloadedLanguages.insert(identifier)
+                }
+            }
+        }
+    }
 }
 
 private struct LanguagePickerRow: View {
     let language: Locale.Language
     let isSelected: Bool
     let isDownloaded: Bool
+    let isDownloading: Bool
     let onTap: () -> Void
 
     var body: some View {
@@ -134,17 +182,21 @@ private struct LanguagePickerRow: View {
 
                 Spacer()
 
-                if isSelected {
+                if isDownloading {
+                    ProgressView()
+                        .tint(.appPrimary)
+                } else if isSelected || isDownloaded {
                     Image(systemName: "checkmark")
                         .foregroundColor(.appPrimary)
                         .fontWeight(.semibold)
-                } else if !isDownloaded {
+                } else {
                     Image(systemName: "arrow.down.circle")
                         .foregroundColor(.appTextMuted)
                 }
             }
             .padding(.vertical, AppSpacing.sm)
         }
+        .disabled(isDownloading || isDownloaded)
     }
 
     private func displayName(for language: Locale.Language) -> String {
@@ -156,7 +208,6 @@ private struct LanguagePickerRow: View {
 #Preview {
     LanguagePickerSheet(
         title: "選擇來源語言",
-        currentLanguage: Locale.Language(identifier: "en"),
-        onSelect: { _, _ in }
-    )
+        currentLanguage: Locale.Language(identifier: "en")
+    ) { _, _ in }
 }
