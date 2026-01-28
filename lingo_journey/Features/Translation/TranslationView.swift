@@ -202,6 +202,10 @@ struct TranslationView: View {
     }
 
     private func startTranslation() {
+        // 保存語言設定供快速翻譯使用
+        liveActivityManager.lastSourceLanguage = sourceLanguage.minimalIdentifier
+        liveActivityManager.lastTargetLanguage = targetLanguage.minimalIdentifier
+
         // Start Live Activity
         liveActivityManager.startActivity(
             sourceLanguage: displayName(for: sourceLanguage),
