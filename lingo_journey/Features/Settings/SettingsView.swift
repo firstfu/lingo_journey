@@ -19,10 +19,6 @@ struct SettingsView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, AppSpacing.xl)
 
-                        SettingsSection(title: String(localized: "settings.quickTranslate")) {
-                            QuickTranslateToggleRow()
-                        }
-
                         SettingsSection(title: String(localized: "settings.languages")) {
                             NavigationLink {
                                 LanguageSettingsView()
@@ -228,65 +224,6 @@ struct SettingsInfoRow: View {
                 .foregroundColor(.appTextMuted)
         }
         .padding(AppSpacing.xl)
-    }
-}
-
-struct QuickTranslateToggleRow: View {
-    private let liveActivityManager = LiveActivityManager.shared
-    @State private var isEnabled: Bool = false
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: AppSpacing.lg) {
-                Image(systemName: "sparkles.rectangle.stack")
-                    .font(.system(size: 20))
-                    .foregroundColor(.appPrimary)
-                    .frame(width: 28)
-
-                VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("settings.persistentDynamicIsland")
-                        .font(.appBody)
-                        .foregroundColor(.appTextPrimary)
-
-                    Text("settings.persistentDynamicIsland.subtitle")
-                        .font(.appFootnote)
-                        .foregroundColor(.appTextMuted)
-                }
-
-                Spacer()
-
-                Toggle("", isOn: $isEnabled)
-                    .tint(.appPrimary)
-            }
-            .padding(AppSpacing.xl)
-
-            // 提示文字
-            HStack(spacing: AppSpacing.sm) {
-                Image(systemName: "lightbulb.fill")
-                    .font(.system(size: 12))
-                    .foregroundColor(.yellow)
-
-                Text("settings.persistentDynamicIsland.hint")
-                    .font(.appFootnote)
-                    .foregroundColor(.appTextMuted)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, AppSpacing.xl)
-            .padding(.bottom, AppSpacing.lg)
-        }
-        .onAppear {
-            isEnabled = liveActivityManager.isPersistentEnabled
-        }
-        .onChange(of: isEnabled) { _, newValue in
-            liveActivityManager.isPersistentEnabled = newValue
-            if newValue {
-                liveActivityManager.startPersistentActivity()
-            } else {
-                Task {
-                    await liveActivityManager.endActivity()
-                }
-            }
-        }
     }
 }
 

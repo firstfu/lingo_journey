@@ -1,4 +1,3 @@
-import ActivityKit
 import AVFoundation
 import Speech
 import SwiftData
@@ -37,8 +36,6 @@ struct TranslationView: View {
     @State private var dontShowGuideAgain = false
 
     @Environment(\.modelContext) private var modelContext
-
-    private let liveActivityManager = LiveActivityManager.shared
 
     var body: some View {
         ZStack {
@@ -202,17 +199,6 @@ struct TranslationView: View {
     }
 
     private func startTranslation() {
-        // 保存語言設定供快速翻譯使用
-        liveActivityManager.lastSourceLanguage = sourceLanguage.minimalIdentifier
-        liveActivityManager.lastTargetLanguage = targetLanguage.minimalIdentifier
-
-        // Start Live Activity
-        liveActivityManager.startActivity(
-            sourceLanguage: displayName(for: sourceLanguage),
-            targetLanguage: displayName(for: targetLanguage),
-            sourceText: sourceText
-        )
-
         // 生成新的 UUID 強制 SwiftUI 重建 translationTask
         translationTrigger = UUID()
         configuration = TranslationSession.Configuration(
@@ -237,12 +223,6 @@ struct TranslationView: View {
         do {
             let response = try await session.translate(textToTranslate)
 
-            // Update Live Activity with result
-            await liveActivityManager.updateActivity(
-                translatedText: response.targetText,
-                sourceText: textToTranslate
-            )
-
             await MainActor.run {
                 translatedText = response.targetText
                 isTranslating = false
@@ -259,13 +239,7 @@ struct TranslationView: View {
                 currentRecord = record
             }
 
-            // End Live Activity after showing result
-            liveActivityManager.endActivityAfterDelay(seconds: 5.0)
-
         } catch {
-            // End Live Activity on error
-            await liveActivityManager.endActivity()
-
             await MainActor.run {
                 isTranslating = false
                 configuration = nil
