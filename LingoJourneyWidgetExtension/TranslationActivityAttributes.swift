@@ -1,6 +1,8 @@
 import ActivityKit
 import Foundation
 
+/// Shared attributes for Translation Live Activity
+/// This file must be included in both main app and widget extension targets
 struct TranslationActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         var sourceText: String

@@ -36,7 +36,9 @@ final class LiveActivityManager {
         let initialState = TranslationActivityAttributes.ContentState(
             sourceText: sourceText,
             translatedText: "",
-            isTranslating: true
+            isTranslating: true,
+            isStandby: false,
+            errorMessage: nil
         )
 
         do {
@@ -58,7 +60,9 @@ final class LiveActivityManager {
         let updatedState = TranslationActivityAttributes.ContentState(
             sourceText: sourceText,
             translatedText: translatedText,
-            isTranslating: false
+            isTranslating: false,
+            isStandby: false,
+            errorMessage: nil
         )
 
         await activity.update(
@@ -73,7 +77,9 @@ final class LiveActivityManager {
         let finalState = TranslationActivityAttributes.ContentState(
             sourceText: "",
             translatedText: "",
-            isTranslating: false
+            isTranslating: false,
+            isStandby: false,
+            errorMessage: nil
         )
 
         await activity.end(
