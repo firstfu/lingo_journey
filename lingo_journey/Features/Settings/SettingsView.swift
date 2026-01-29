@@ -80,12 +80,22 @@ struct SettingsView: View {
                                 value: "1.0.0"
                             )
 
-                            SettingsRow(
-                                icon: "hand.raised",
-                                title: String(localized: "settings.privacyPolicy"),
-                                subtitle: nil
-                            ) {
-                                // Open privacy policy
+                            NavigationLink {
+                                PrivacyPolicyView()
+                            } label: {
+                                SettingsRowLabel(
+                                    icon: "hand.raised",
+                                    title: String(localized: "settings.privacyPolicy")
+                                )
+                            }
+
+                            NavigationLink {
+                                TermsOfServiceView()
+                            } label: {
+                                SettingsRowLabel(
+                                    icon: "doc.text",
+                                    title: String(localized: "settings.termsOfService")
+                                )
                             }
                         }
                     }
@@ -233,6 +243,31 @@ struct SettingsInfoRow: View {
 
             Text(value)
                 .font(.appBody)
+                .foregroundColor(.appTextMuted)
+        }
+        .padding(AppSpacing.xl)
+    }
+}
+
+struct SettingsRowLabel: View {
+    let icon: String
+    let title: String
+
+    var body: some View {
+        HStack(spacing: AppSpacing.lg) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundColor(.appPrimary)
+                .frame(width: 28)
+
+            Text(title)
+                .font(.appBody)
+                .foregroundColor(.appTextPrimary)
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.appTextMuted)
         }
         .padding(AppSpacing.xl)
