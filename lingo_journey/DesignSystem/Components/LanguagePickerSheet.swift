@@ -12,6 +12,8 @@ struct LanguagePickerSheet: View {
     @State private var downloadedLanguages: Set<String> = []
     @State private var downloadingLanguages: Set<String> = []
     @State private var isLoading = true
+    @State private var downloadConfiguration: TranslationSession.Configuration?
+    @State private var pendingDownloadLanguage: Locale.Language?
 
     init(
         title: String,
@@ -52,6 +54,9 @@ struct LanguagePickerSheet: View {
         }
         .task {
             await loadLanguages()
+        }
+        .translationTask(downloadConfiguration) { session in
+            await handleDownloadSession(session: session)
         }
     }
 
@@ -138,23 +143,40 @@ struct LanguagePickerSheet: View {
         guard !downloadingLanguages.contains(identifier) else { return }
 
         downloadingLanguages.insert(identifier)
+        pendingDownloadLanguage = language
 
-        Task {
-            let availability = LanguageAvailability()
+        // 觸發 translationTask，系統會自動提示下載
+        downloadConfiguration = TranslationSession.Configuration(
+            source: language,
+            target: Locale.Language(identifier: "en")
+        )
+    }
 
-            // 等待一段時間後檢查下載狀態（實際下載由系統處理）
-            try? await Task.sleep(for: .seconds(2))
+    private func handleDownloadSession(session: TranslationSession) async {
+        guard let language = pendingDownloadLanguage else { return }
+        let identifier = language.minimalIdentifier
 
-            let status = await availability.status(
-                from: language,
-                to: Locale.Language(identifier: "en")
-            )
+        do {
+            // 嘗試翻譯一個簡單單字來觸發下載流程
+            _ = try await session.translate("hello")
+        } catch {
+            // 下載被取消或失敗，忽略錯誤
+        }
 
-            await MainActor.run {
-                downloadingLanguages.remove(identifier)
-                if status == .installed {
-                    downloadedLanguages.insert(identifier)
-                }
+        // 無論成功或失敗，重新檢查語言狀態
+        let availability = LanguageAvailability()
+        let status = await availability.status(
+            from: language,
+            to: Locale.Language(identifier: "en")
+        )
+
+        await MainActor.run {
+            downloadingLanguages.remove(identifier)
+            downloadConfiguration = nil
+            pendingDownloadLanguage = nil
+
+            if status == .installed {
+                downloadedLanguages.insert(identifier)
             }
         }
     }
