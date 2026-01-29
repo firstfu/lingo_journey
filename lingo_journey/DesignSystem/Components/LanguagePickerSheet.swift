@@ -1,10 +1,16 @@
 import SwiftUI
 import Translation
 
+// 用於跨頁面導航到語言包下載的通知
+extension Notification.Name {
+    static let navigateToLanguagePackages = Notification.Name("navigateToLanguagePackages")
+}
+
 struct LanguagePickerSheet: View {
     let title: String
     let currentLanguage: Locale.Language?
     let dismissOnSelect: Bool
+    let showDownloadableLanguages: Bool
     let onSelect: (Locale.Language, Bool) -> Void  // (language, isDownloaded)
 
     @Environment(\.dismiss) private var dismiss
@@ -20,11 +26,13 @@ struct LanguagePickerSheet: View {
         title: String,
         currentLanguage: Locale.Language? = nil,
         dismissOnSelect: Bool = true,
+        showDownloadableLanguages: Bool = true,
         onSelect: @escaping (Locale.Language, Bool) -> Void
     ) {
         self.title = title
         self.currentLanguage = currentLanguage
         self.dismissOnSelect = dismissOnSelect
+        self.showDownloadableLanguages = showDownloadableLanguages
         self.onSelect = onSelect
     }
 
@@ -95,7 +103,7 @@ struct LanguagePickerSheet: View {
                 .listRowBackground(Color.appSurface)
             }
 
-            if !availableLanguagesList.isEmpty {
+            if showDownloadableLanguages && !availableLanguagesList.isEmpty {
                 Section {
                     ForEach(availableLanguagesList, id: \.minimalIdentifier) { language in
                         LanguagePickerRow(
@@ -117,6 +125,30 @@ struct LanguagePickerSheet: View {
                         .foregroundColor(.appTextMuted)
                 }
                 .listRowBackground(Color.appSurface)
+            }
+
+            // 當不顯示可下載語言時，顯示導航提示
+            if !showDownloadableLanguages && !availableLanguagesList.isEmpty {
+                Section {
+                    Button {
+                        dismiss()
+                        // 延遲發送通知，確保 sheet 關閉後再導航
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                            NotificationCenter.default.post(name: .navigateToLanguagePackages, object: nil)
+                        }
+                    } label: {
+                        HStack(spacing: AppSpacing.sm) {
+                            Image(systemName: "lightbulb")
+                                .foregroundColor(.appPrimary)
+                            Text("前往「設定」下載更多語言")
+                                .font(.appFootnote)
+                                .foregroundColor(.appPrimary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppSpacing.sm)
+                    }
+                }
+                .listRowBackground(Color.clear)
             }
         }
         .listStyle(.insetGrouped)

@@ -1,5 +1,17 @@
 import SwiftUI
 
+// Environment key for triggering language packages sheet
+private struct ShouldOpenLanguagePackagesKey: EnvironmentKey {
+    static let defaultValue: Binding<Bool> = .constant(false)
+}
+
+extension EnvironmentValues {
+    var shouldOpenLanguagePackages: Binding<Bool> {
+        get { self[ShouldOpenLanguagePackagesKey.self] }
+        set { self[ShouldOpenLanguagePackagesKey.self] = newValue }
+    }
+}
+
 enum AppTab: Int, CaseIterable {
     case translate
     case voice
@@ -27,6 +39,7 @@ enum AppTab: Int, CaseIterable {
 
 struct MainTabView: View {
     @State private var selectedTab: AppTab = .translate
+    @State private var shouldOpenLanguagePackages = false
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -39,6 +52,11 @@ struct MainTabView: View {
             }
         }
         .tint(.appPrimary)
+        .onReceive(NotificationCenter.default.publisher(for: .navigateToLanguagePackages)) { _ in
+            selectedTab = .settings
+            shouldOpenLanguagePackages = true
+        }
+        .environment(\.shouldOpenLanguagePackages, $shouldOpenLanguagePackages)
     }
 
     @ViewBuilder

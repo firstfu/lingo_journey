@@ -5,6 +5,7 @@ struct SettingsView: View {
     @State private var languageManager = LanguageManager.shared
     @State private var isGeoAwareEnabled = true
     @State private var showLanguagePackages = false
+    @Environment(\.shouldOpenLanguagePackages) private var shouldOpenLanguagePackages
 
     var body: some View {
         NavigationStack {
@@ -110,6 +111,12 @@ struct SettingsView: View {
             .task {
                 if isGeoAwareEnabled {
                     await locationService.initialize()
+                }
+            }
+            .onChange(of: shouldOpenLanguagePackages.wrappedValue) { _, shouldOpen in
+                if shouldOpen {
+                    showLanguagePackages = true
+                    shouldOpenLanguagePackages.wrappedValue = false
                 }
             }
         }

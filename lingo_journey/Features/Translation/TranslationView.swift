@@ -131,7 +131,8 @@ struct TranslationView: View {
         .sheet(isPresented: $showSourceLanguagePicker) {
             LanguagePickerSheet(
                 title: String(localized: "language.picker.source"),
-                currentLanguage: sourceLanguage
+                currentLanguage: sourceLanguage,
+                showDownloadableLanguages: false
             ) { language, isDownloaded in
                 handleLanguageSelection(language: language, isDownloaded: isDownloaded, isSource: true)
             }
@@ -140,7 +141,8 @@ struct TranslationView: View {
         .sheet(isPresented: $showTargetLanguagePicker) {
             LanguagePickerSheet(
                 title: String(localized: "language.picker.target"),
-                currentLanguage: targetLanguage
+                currentLanguage: targetLanguage,
+                showDownloadableLanguages: false
             ) { language, isDownloaded in
                 handleLanguageSelection(language: language, isDownloaded: isDownloaded, isSource: false)
             }
