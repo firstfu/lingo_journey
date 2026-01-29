@@ -23,6 +23,13 @@ struct TranslationView: View {
     @State private var isListening = false
     @State private var showSpeechPermissionAlert = false
 
+    // TTS states
+    @State private var isSpeaking = false
+    @State private var speechSynthesizer = AVSpeechSynthesizer()
+
+    // Copy feedback states
+    @State private var showCopySuccess = false
+
     // Language picker states
     @State private var showSourceLanguagePicker = false
     @State private var showTargetLanguagePicker = false
@@ -62,7 +69,8 @@ struct TranslationView: View {
                         text: $sourceText,
                         onCameraTap: handleCameraTap,
                         onMicTap: handleMicTap,
-                        isListening: isListening
+                        isListening: isListening,
+                        audioLevel: speechService.audioLevel
                     )
                     .padding(.horizontal, AppSpacing.xl)
 
@@ -79,9 +87,11 @@ struct TranslationView: View {
                             languageName: displayName(for: targetLanguage),
                             translatedText: translatedText,
                             onCopy: copyToClipboard,
-                            onSpeak: { },
+                            onSpeak: toggleSpeak,
                             onFavorite: toggleFavorite,
-                            isFavorite: currentRecord?.isFavorite ?? false
+                            isFavorite: currentRecord?.isFavorite ?? false,
+                            isSpeaking: isSpeaking,
+                            showCopySuccess: showCopySuccess
                         )
                         .padding(.horizontal, AppSpacing.xl)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -250,11 +260,58 @@ struct TranslationView: View {
 
     private func copyToClipboard() {
         UIPasteboard.general.string = translatedText
+
+        // Haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+
+        // Show success state
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showCopySuccess = true
+        }
+
+        // Reset after 1.5 seconds
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            await MainActor.run {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showCopySuccess = false
+                }
+            }
+        }
     }
 
     private func toggleFavorite() {
         guard let record = currentRecord else { return }
         record.isFavorite.toggle()
+    }
+
+    private func toggleSpeak() {
+        if isSpeaking {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+            isSpeaking = false
+        } else {
+            speakText(translatedText, language: targetLanguage)
+        }
+    }
+
+    private func speakText(_ text: String, language: Locale.Language) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = AVSpeechSynthesisVoice(language: language.minimalIdentifier)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+
+        isSpeaking = true
+        speechSynthesizer.speak(utterance)
+
+        // Monitor completion
+        Task {
+            while speechSynthesizer.isSpeaking {
+                try? await Task.sleep(for: .milliseconds(100))
+            }
+            await MainActor.run {
+                isSpeaking = false
+            }
+        }
     }
 
     private func displayName(for language: Locale.Language) -> String {
