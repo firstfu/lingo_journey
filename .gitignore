@@ -63,3 +63,6 @@ fastlane/test_output
 
 
 **build**
+
+# Git worktrees
+.worktrees/
