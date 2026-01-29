@@ -162,7 +162,7 @@ struct LanguagePickerSheet: View {
         for language in supportedLanguages {
             let status = await availability.status(
                 from: language,
-                to: Locale.Language(identifier: "en")
+                to: targetLanguageForPairing(with: language)
             )
             if status == .installed {
                 downloadedLanguages.insert(language.minimalIdentifier)
@@ -170,6 +170,16 @@ struct LanguagePickerSheet: View {
         }
 
         isLoading = false
+    }
+
+    /// 取得用於配對檢查的目標語言（避免同語言配對）
+    private func targetLanguageForPairing(with language: Locale.Language) -> Locale.Language {
+        let identifier = language.minimalIdentifier
+        // 如果是英文，用中文配對；否則用英文配對
+        if identifier == "en" || identifier.hasPrefix("en-") {
+            return Locale.Language(identifier: "zh-Hant")
+        }
+        return Locale.Language(identifier: "en")
     }
 
     private func startDownload(_ language: Locale.Language) {
@@ -183,9 +193,10 @@ struct LanguagePickerSheet: View {
         downloadTrigger = UUID()
 
         // 觸發 translationTask，系統會自動提示下載
+        // 使用適當的目標語言避免同語言配對
         downloadConfiguration = TranslationSession.Configuration(
             source: language,
-            target: Locale.Language(identifier: "en")
+            target: targetLanguageForPairing(with: language)
         )
     }
 
@@ -204,7 +215,7 @@ struct LanguagePickerSheet: View {
         let availability = LanguageAvailability()
         let status = await availability.status(
             from: language,
-            to: Locale.Language(identifier: "en")
+            to: targetLanguageForPairing(with: language)
         )
 
         await MainActor.run {

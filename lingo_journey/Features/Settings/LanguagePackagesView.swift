@@ -55,7 +55,7 @@ struct LanguagePackagesView: View {
         for language in supportedLanguages {
             let status = await availability.status(
                 from: language,
-                to: Locale.Language(identifier: "en")
+                to: targetLanguageForPairing(with: language)
             )
             if status == .installed {
                 downloadedLanguages.insert(language.minimalIdentifier)
@@ -65,9 +65,21 @@ struct LanguagePackagesView: View {
         isLoading = false
     }
 
+    /// 取得用於配對檢查的目標語言（避免同語言配對）
+    private func targetLanguageForPairing(with language: Locale.Language) -> Locale.Language {
+        let identifier = language.minimalIdentifier
+        // 如果是英文，用中文配對；否則用英文配對
+        if identifier == "en" || identifier.hasPrefix("en-") {
+            return Locale.Language(identifier: "zh-Hant")
+        }
+        return Locale.Language(identifier: "en")
+    }
+
     private func downloadLanguage(_ language: Locale.Language) {
         downloadingLanguages.insert(language.minimalIdentifier)
 
+        // TODO: 實作真正的下載邏輯，應使用 TranslationSession.Configuration 觸發系統下載提示
+        // 目前此處只是模擬下載完成，實際應參考 LanguagePickerSheet 的 startDownload 實作
         Task {
             try? await Task.sleep(nanoseconds: 2_000_000_000)
             await MainActor.run {

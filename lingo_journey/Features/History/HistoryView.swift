@@ -7,6 +7,7 @@ struct HistoryView: View {
 
     @State private var searchText = ""
     @State private var showFavoritesOnly = false
+    @State private var showClearAllAlert = false
 
     var filteredRecords: [TranslationRecord] {
         var result = records
@@ -30,12 +31,25 @@ struct HistoryView: View {
             Color.appBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("history.title")
-                    .font(.appTitle1)
-                    .foregroundColor(.appTextPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, AppSpacing.xl)
-                    .padding(.top, AppSpacing.xl)
+                HStack {
+                    Text("history.title")
+                        .font(.appTitle1)
+                        .foregroundColor(.appTextPrimary)
+
+                    Spacer()
+
+                    if !records.isEmpty {
+                        Button {
+                            showClearAllAlert = true
+                        } label: {
+                            Image(systemName: "trash")
+                                .font(.appBody)
+                                .foregroundColor(.appError)
+                        }
+                    }
+                }
+                .padding(.horizontal, AppSpacing.xl)
+                .padding(.top, AppSpacing.xl)
 
                 SearchBar(text: $searchText)
                     .padding(.horizontal, AppSpacing.xl)
@@ -83,6 +97,20 @@ struct HistoryView: View {
                     .scrollContentBackground(.hidden)
                 }
             }
+        }
+        .alert("history.clearAll.title", isPresented: $showClearAllAlert) {
+            Button("history.clearAll.cancel", role: .cancel) {}
+            Button("history.clearAll.confirm", role: .destructive) {
+                clearAllHistory()
+            }
+        } message: {
+            Text("history.clearAll.message")
+        }
+    }
+
+    private func clearAllHistory() {
+        for record in records {
+            modelContext.delete(record)
         }
     }
 

@@ -5,8 +5,44 @@ import SwiftUI
 import Translation
 
 struct TranslationView: View {
-    @State private var sourceLanguage = Locale.Language(identifier: "en")
+    @State private var sourceLanguage = TranslationView.defaultSourceLanguage()
     @State private var targetLanguage = Locale.Language(identifier: "zh-Hant")
+
+    /// 取得預設來源語言：使用系統語言，若不支援則回退到英文
+    private static func defaultSourceLanguage() -> Locale.Language {
+        let systemLanguage = Locale.current.language
+        let supportedIdentifiers = [
+            "ar", "zh-Hans", "zh-Hant", "en", "fr", "de", "hi", "id",
+            "it", "ja", "ko", "pl", "pt", "ru", "es", "th", "tr", "uk", "vi",
+        ]
+
+        let identifier = systemLanguage.minimalIdentifier
+
+        // 完全匹配
+        if supportedIdentifiers.contains(identifier) {
+            return systemLanguage
+        }
+
+        // 語言碼匹配
+        if let languageCode = systemLanguage.languageCode?.identifier {
+            // 中文特殊處理：根據地區決定繁體或簡體
+            if languageCode == "zh" {
+                if let region = systemLanguage.region?.identifier,
+                   ["TW", "HK", "MO"].contains(region)
+                {
+                    return Locale.Language(identifier: "zh-Hant")
+                }
+                return Locale.Language(identifier: "zh-Hans")
+            }
+
+            if supportedIdentifiers.contains(languageCode) {
+                return Locale.Language(identifier: languageCode)
+            }
+        }
+
+        // 回退到英文
+        return Locale.Language(identifier: "en")
+    }
     @State private var sourceText = ""
     @State private var translatedText = ""
     @State private var isTranslating = false
@@ -69,6 +105,7 @@ struct TranslationView: View {
                         text: $sourceText,
                         onCameraTap: handleCameraTap,
                         onMicTap: handleMicTap,
+                        onClearTap: handleClearTap,
                         isListening: isListening,
                         audioLevel: speechService.audioLevel
                     )
@@ -317,6 +354,20 @@ struct TranslationView: View {
     private func displayName(for language: Locale.Language) -> String {
         let locale = Locale(identifier: language.minimalIdentifier)
         return locale.localizedString(forIdentifier: language.minimalIdentifier)?.capitalized ?? language.minimalIdentifier
+    }
+
+    // MARK: - Clear
+    private func handleClearTap() {
+        // Haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+
+        // Clear all text and reset state
+        withAnimation(.easeInOut(duration: 0.2)) {
+            sourceText = ""
+            translatedText = ""
+            currentRecord = nil
+        }
     }
 
     // MARK: - Microphone

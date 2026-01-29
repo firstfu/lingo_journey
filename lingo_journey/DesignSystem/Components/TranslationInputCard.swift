@@ -5,6 +5,7 @@ struct TranslationInputCard: View {
     @Binding var text: String
     var onCameraTap: (() -> Void)?
     var onMicTap: () -> Void
+    var onClearTap: (() -> Void)?
     var isListening: Bool = false
     var audioLevel: Float = 0.0
 
@@ -37,7 +38,19 @@ struct TranslationInputCard: View {
                             .background(isListening ? Color.appPrimary.opacity(0.2) : Color.clear)
                             .clipShape(Circle())
                     }
+
+                    // Clear button - only show when text is not empty
+                    if !text.isEmpty, let onClearTap = onClearTap {
+                        Button(action: onClearTap) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.appTextMuted)
+                                .frame(width: 44, height: 44)
+                        }
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    }
                 }
+                .animation(.easeInOut(duration: 0.2), value: text.isEmpty)
             }
 
             // Audio waveform when listening
@@ -63,18 +76,31 @@ struct TranslationInputCard: View {
     ZStack {
         Color.appBackground.ignoresSafeArea()
         VStack(spacing: 20) {
+            // With text - shows clear button
             TranslationInputCard(
                 languageName: "English",
-                text: .constant("Hello"),
+                text: .constant("Hello world"),
                 onCameraTap: {},
                 onMicTap: {},
+                onClearTap: {},
                 isListening: false
             )
+            // Empty text - no clear button
+            TranslationInputCard(
+                languageName: "English",
+                text: .constant(""),
+                onCameraTap: {},
+                onMicTap: {},
+                onClearTap: {},
+                isListening: false
+            )
+            // Listening state
             TranslationInputCard(
                 languageName: "English",
                 text: .constant("Hello"),
                 onCameraTap: {},
                 onMicTap: {},
+                onClearTap: {},
                 isListening: true,
                 audioLevel: 0.6
             )
