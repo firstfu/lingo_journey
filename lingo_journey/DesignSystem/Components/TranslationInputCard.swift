@@ -6,6 +6,7 @@ struct TranslationInputCard: View {
     var onCameraTap: (() -> Void)?
     var onMicTap: () -> Void
     var isListening: Bool = false
+    var audioLevel: Float = 0.0
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.lg) {
@@ -39,6 +40,12 @@ struct TranslationInputCard: View {
                 }
             }
 
+            // Audio waveform when listening
+            if isListening {
+                AudioWaveformView(audioLevel: audioLevel)
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+            }
+
             TextField("Enter your text here...", text: $text, axis: .vertical)
                 .font(.appBody)
                 .foregroundColor(.appTextPrimary)
@@ -48,19 +55,30 @@ struct TranslationInputCard: View {
         .padding(AppSpacing.xl)
         .background(Color.appSurface)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.large))
+        .animation(.easeInOut(duration: 0.2), value: isListening)
     }
 }
 
 #Preview {
     ZStack {
         Color.appBackground.ignoresSafeArea()
-        TranslationInputCard(
-            languageName: "English",
-            text: .constant("Hello, how are you?"),
-            onCameraTap: {},
-            onMicTap: {},
-            isListening: false
-        )
+        VStack(spacing: 20) {
+            TranslationInputCard(
+                languageName: "English",
+                text: .constant("Hello"),
+                onCameraTap: {},
+                onMicTap: {},
+                isListening: false
+            )
+            TranslationInputCard(
+                languageName: "English",
+                text: .constant("Hello"),
+                onCameraTap: {},
+                onMicTap: {},
+                isListening: true,
+                audioLevel: 0.6
+            )
+        }
         .padding()
     }
 }

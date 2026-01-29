@@ -62,7 +62,8 @@ struct TranslationView: View {
                         text: $sourceText,
                         onCameraTap: handleCameraTap,
                         onMicTap: handleMicTap,
-                        isListening: isListening
+                        isListening: isListening,
+                        audioLevel: speechService.audioLevel
                     )
                     .padding(.horizontal, AppSpacing.xl)
 
