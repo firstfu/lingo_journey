@@ -14,6 +14,7 @@ struct LanguagePickerSheet: View {
     @State private var isLoading = true
     @State private var downloadConfiguration: TranslationSession.Configuration?
     @State private var pendingDownloadLanguage: Locale.Language?
+    @State private var downloadTrigger = UUID()
 
     init(
         title: String,
@@ -58,6 +59,7 @@ struct LanguagePickerSheet: View {
         .translationTask(downloadConfiguration) { session in
             await handleDownloadSession(session: session)
         }
+        .id(downloadTrigger)
     }
 
     private var downloadedLanguagesList: [Locale.Language] {
@@ -144,6 +146,9 @@ struct LanguagePickerSheet: View {
 
         downloadingLanguages.insert(identifier)
         pendingDownloadLanguage = language
+
+        // 生成新的 UUID 強制 SwiftUI 重建 translationTask
+        downloadTrigger = UUID()
 
         // 觸發 translationTask，系統會自動提示下載
         downloadConfiguration = TranslationSession.Configuration(
