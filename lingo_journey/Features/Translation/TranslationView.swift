@@ -149,8 +149,7 @@ struct TranslationView: View {
         .languageDownloadAlert(
             isPresented: $showDownloadAlert,
             languageName: pendingLanguage.map { displayName(for: $0) } ?? "",
-            onDownload: handleDownloadLanguage,
-            onUseTemporarily: handleUseTemporarily
+            onDownload: handleDownloadLanguage
         )
         .sheet(isPresented: $showTranslationGuide) {
             TranslationGuideSheet(
@@ -349,16 +348,6 @@ struct TranslationView: View {
         pendingLanguage = nil
     }
 
-    private func handleUseTemporarily() {
-        guard let language = pendingLanguage else { return }
-
-        if pendingLanguageIsSource {
-            sourceLanguage = language
-        } else {
-            targetLanguage = language
-        }
-        pendingLanguage = nil
-    }
 }
 
 #Preview {

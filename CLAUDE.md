@@ -103,7 +103,7 @@ Use these prefixed tokens instead of raw values:
 |-----------|-------|
 | Translation | On-device translation (iOS 17.4+) |
 | Speech | Speech-to-text with `requiresOnDeviceRecognition` |
-| ActivityKit | Live Activity for translation status |
+| ActivityKit | Live Activity for translation status (計劃中) |
 | CoreLocation + MapKit | Location-based language suggestions |
 | VisionKit | DataScannerViewController for OCR text recognition |
 
@@ -112,7 +112,8 @@ Use these prefixed tokens instead of raw values:
 | Purpose | Location |
 |---------|----------|
 | App Entry | `lingo_journey/lingo_journeyApp.swift` |
-| Main Navigation | `Features/MainTabView.swift` |
-| Translation Logic | `Features/Translation/TranslationView.swift` |
-| Live Activity | `LiveActivity/TranslationActivity.swift` |
-| String Catalog | `Resources/Localizable.xcstrings` |
+| Main Navigation | `lingo_journey/Features/MainTabView.swift` |
+| Translation Logic | `lingo_journey/Features/Translation/TranslationView.swift` |
+| Language Manager | `lingo_journey/Core/Services/LanguageManager.swift` |
+| Design Tokens | `lingo_journey/DesignSystem/Colors.swift`, `Spacing.swift`, `Typography.swift` |
+| String Catalog | `lingo_journey/Resources/Localizable.xcstrings` |

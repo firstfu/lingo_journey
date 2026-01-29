@@ -14,7 +14,7 @@ struct SplashView: View {
                     .scaleEffect(isAnimating ? 1.0 : 0.8)
                     .opacity(isAnimating ? 1.0 : 0.0)
 
-                Text("LingoJourney")
+                Text("app.name")
                     .font(.appLargeTitle)
                     .foregroundColor(.appTextPrimary)
                     .opacity(isAnimating ? 1.0 : 0.0)
