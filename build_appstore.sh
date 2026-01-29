@@ -258,6 +258,12 @@ export_and_upload() {
 
     print_info "正在導出並上傳，這可能需要幾分鐘..."
 
+    # 暫時移除 Homebrew 路徑，避免 rsync 版本衝突
+    # Xcode 需要使用 macOS 內建的 rsync
+    ORIGINAL_PATH="$PATH"
+    export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/Applications/Xcode.app/Contents/Developer/usr/bin:$PATH"
+    PATH=$(echo "$PATH" | sed 's|/opt/homebrew/bin:||g' | sed 's|/opt/homebrew/sbin:||g' | sed 's|/usr/local/bin:||g')
+
     # 使用 xcodebuild 導出並上傳
     # 由於 ExportOptions.plist 使用 app-store-connect method，會直接上傳
     EXPORT_OUTPUT=$(xcodebuild -exportArchive \
@@ -270,6 +276,9 @@ export_and_upload() {
         -authenticationKeyIssuerID "$API_ISSUER_ID" 2>&1) || true
 
     EXPORT_RESULT=$?
+
+    # 恢復原始 PATH
+    export PATH="$ORIGINAL_PATH"
 
     # 檢查是否上傳成功
     if echo "$EXPORT_OUTPUT" | grep -q "Upload succeeded"; then
