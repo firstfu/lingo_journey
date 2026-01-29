@@ -244,18 +244,18 @@ private struct LanguagePickerRow: View {
                 if isDownloading {
                     ProgressView()
                         .tint(.appPrimary)
-                } else if isSelected || isDownloaded {
+                } else if isSelected {
                     Image(systemName: "checkmark")
                         .foregroundColor(.appPrimary)
                         .fontWeight(.semibold)
-                } else {
+                } else if !isDownloaded {
                     Image(systemName: "arrow.down.circle")
                         .foregroundColor(.appTextMuted)
                 }
             }
             .padding(.vertical, AppSpacing.sm)
         }
-        .disabled(isDownloading || isDownloaded)
+        .disabled(isDownloading)
     }
 
     private func displayName(for language: Locale.Language) -> String {
