@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import Photos
+import NaturalLanguage
 
 /// 掃描器狀態
 enum ScannerState: Equatable {
@@ -77,7 +78,18 @@ final class PhotoScannerViewModel {
 
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
             textRecognitionEngine.recognizeText(from: ciImage) { [weak self] results in
-                self?.detectedTexts = results.map { result in
+                guard let self else {
+                    continuation.resume()
+                    return
+                }
+
+                // 過濾只保留來源語言的文字
+                let sourceLanguageCode = self.translationEngine.sourceLanguage.minimalIdentifier
+                let filteredResults = results.filter { result in
+                    self.isTextInLanguage(result.text, languageCode: sourceLanguageCode)
+                }
+
+                self.detectedTexts = filteredResults.map { result in
                     DetectedText(
                         text: result.text,
                         translatedText: nil,
@@ -88,6 +100,32 @@ final class PhotoScannerViewModel {
                 continuation.resume()
             }
         }
+    }
+
+    /// 檢查文字是否屬於指定語言
+    private func isTextInLanguage(_ text: String, languageCode: String) -> Bool {
+        let recognizer = NLLanguageRecognizer()
+        recognizer.processString(text)
+
+        guard let detectedLanguage = recognizer.dominantLanguage else {
+            return false
+        }
+
+        // 處理語言碼對應 (zh-Hant, zh-Hans → zh)
+        let normalizedSourceCode = normalizeLanguageCode(languageCode)
+        let normalizedDetectedCode = normalizeLanguageCode(detectedLanguage.rawValue)
+
+        return normalizedSourceCode == normalizedDetectedCode
+    }
+
+    /// 正規化語言碼 (處理變體如 zh-Hant, zh-Hans)
+    private func normalizeLanguageCode(_ code: String) -> String {
+        // 中文變體統一為 zh
+        if code.hasPrefix("zh") {
+            return "zh"
+        }
+        // 取主要語言碼 (en-US → en)
+        return code.components(separatedBy: "-").first ?? code
     }
 
     /// 翻譯所有偵測到的文字
