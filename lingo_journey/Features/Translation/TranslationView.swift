@@ -6,7 +6,7 @@ import Translation
 
 struct TranslationView: View {
     @State private var sourceLanguage = TranslationView.defaultSourceLanguage()
-    @State private var targetLanguage = Locale.Language(identifier: "zh-Hant")
+    @State private var targetLanguage = Locale.Language(identifier: "en")
 
     /// 取得預設來源語言：使用系統語言，若不支援則回退到英文
     private static func defaultSourceLanguage() -> Locale.Language {

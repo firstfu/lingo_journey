@@ -50,13 +50,6 @@ struct ScannerView: View {
                     Spacer()
                 }
 
-                // Status indicator at bottom
-                VStack {
-                    Spacer()
-                    statusIndicator
-                        .padding(.bottom, AppSpacing.xxxl)
-                }
-
                 // Detail card overlay
                 if viewModel.showDetailCard, let selectedResult = viewModel.getSelectedResult() {
                     detailCardOverlay(result: selectedResult)
@@ -116,32 +109,6 @@ struct ScannerView: View {
         let source = displayName(for: viewModel.sourceLanguage)
         let target = displayName(for: viewModel.targetLanguage)
         return "\(source) → \(target)"
-    }
-
-    // MARK: - Status Indicator
-    private var statusIndicator: some View {
-        Text(statusText)
-            .font(.appFootnote)
-            .foregroundColor(.white)
-            .padding(.horizontal, AppSpacing.xl)
-            .padding(.vertical, AppSpacing.md)
-            .background(Color.black.opacity(0.5))
-            .clipShape(Capsule())
-    }
-
-    private var statusText: String {
-        switch viewModel.scannerState {
-        case .initializing:
-            return String(localized: "正在啟動相機...")
-        case .scanning:
-            return String(localized: "將相機對準文字")
-        case .detected(let count):
-            return String(localized: "偵測到 \(count) 段文字")
-        case .noText:
-            return String(localized: "未偵測到文字")
-        case .error(let message):
-            return String(localized: "錯誤：\(message)")
-        }
     }
 
     // MARK: - Detail Card Overlay

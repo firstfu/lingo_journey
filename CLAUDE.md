@@ -80,6 +80,12 @@ configuration = TranslationSession.Configuration(source: sourceLanguage, target:
 
 **SwiftData Container**: Configured in `lingo_journeyApp.swift` with `.modelContainer(for:)`
 
+### Audio Session
+
+App configures `AVAudioSession` at launch in `lingo_journeyApp.swift` for speech recognition and TTS:
+- Category: `.playAndRecord`
+- Options: `defaultToSpeaker`, `allowBluetoothA2DP`, `mixWithOthers`, `duckOthers`
+
 ### Design System Conventions
 
 Use these prefixed tokens instead of raw values:
@@ -88,14 +94,15 @@ Use these prefixed tokens instead of raw values:
 |------|--------|---------|
 | Colors | `Color.app*` | `.appPrimary`, `.appBackground`, `.appTextSecondary` |
 | Fonts | `Font.app*` | `.appTitle1`, `.appBody`, `.appCaption` |
-| Spacing | `AppSpacing.*` | `.xl` (16pt), `.xxl` (20pt), `.section` (32pt) |
+| Spacing | `AppSpacing.*` | `.md` (8pt), `.xl` (16pt), `.xxl` (20pt), `.section` (32pt) |
 | Radius | `AppRadius.*` | `.small` (8pt), `.medium` (12pt), `.large` (16pt) |
 
 ### Localization
 
 - String Catalog at `Resources/Localizable.xcstrings`
 - Use `String(localized:)` or `Text("key")` for localized strings
-- Supported: zh-Hant, zh-Hans, en, ja, ko, es, fr, de, pt
+- **App UI languages**: zh-Hant, zh-Hans, en, ja, ko, es, fr, de, pt
+- **Translation languages** (Apple Translation framework): ar, zh-Hans, zh-Hant, en, fr, de, hi, id, it, ja, ko, pl, pt, ru, es, th, tr, uk, vi
 
 ## Framework Dependencies
 
@@ -106,6 +113,7 @@ Use these prefixed tokens instead of raw values:
 | ActivityKit | Live Activity for translation status (計劃中) |
 | CoreLocation + MapKit | Location-based language suggestions |
 | VisionKit | DataScannerViewController for OCR text recognition |
+| AVFoundation | Text-to-speech (AVSpeechSynthesizer) and audio session |
 
 ## Key Files
 
