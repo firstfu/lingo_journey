@@ -50,10 +50,6 @@ struct TranslationView: View {
     @State private var translationTrigger = UUID()
     @State private var currentRecord: TranslationRecord?
 
-    // Scanner states
-    @State private var showScanner = false
-    @State private var showCameraPermissionAlert = false
-
     // Speech states
     @State private var speechService = SpeechService()
     @State private var isListening = false
@@ -103,7 +99,6 @@ struct TranslationView: View {
                     TranslationInputCard(
                         languageName: displayName(for: sourceLanguage),
                         text: $sourceText,
-                        onCameraTap: handleCameraTap,
                         onMicTap: handleMicTap,
                         onClearTap: handleClearTap,
                         isListening: isListening,
@@ -148,22 +143,6 @@ struct TranslationView: View {
         .animation(.spring(duration: 0.3), value: translatedText)
         .onChange(of: speechService.recognizedText) { _, newValue in
             sourceText = newValue
-        }
-        .fullScreenCover(isPresented: $showScanner) {
-            ScannerView(
-                sourceLanguage: sourceLanguage,
-                targetLanguage: targetLanguage
-            )
-        }
-        .alert("需要相機權限", isPresented: $showCameraPermissionAlert) {
-            Button("取消", role: .cancel) { }
-            Button("開啟設定") {
-                if let url = URL(string: UIApplication.openSettingsURLString) {
-                    UIApplication.shared.open(url)
-                }
-            }
-        } message: {
-            Text("請在設定中開啟相機權限以使用掃描翻譯功能")
         }
         .alert("需要語音辨識權限", isPresented: $showSpeechPermissionAlert) {
             Button("取消", role: .cancel) { }
@@ -403,31 +382,6 @@ struct TranslationView: View {
     private func stopListening() {
         speechService.stopListening()
         isListening = false
-    }
-
-    // MARK: - Camera
-    private func handleCameraTap() {
-        let status = AVCaptureDevice.authorizationStatus(for: .video)
-
-        switch status {
-        case .authorized:
-            showScanner = true
-        case .notDetermined:
-            Task {
-                let granted = await AVCaptureDevice.requestAccess(for: .video)
-                await MainActor.run {
-                    if granted {
-                        showScanner = true
-                    } else {
-                        showCameraPermissionAlert = true
-                    }
-                }
-            }
-        case .denied, .restricted:
-            showCameraPermissionAlert = true
-        @unknown default:
-            showCameraPermissionAlert = true
-        }
     }
 
     // MARK: - Language Selection

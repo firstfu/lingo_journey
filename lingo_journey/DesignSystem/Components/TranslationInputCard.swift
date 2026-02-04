@@ -3,7 +3,6 @@ import SwiftUI
 struct TranslationInputCard: View {
     let languageName: String
     @Binding var text: String
-    var onCameraTap: (() -> Void)?
     var onMicTap: () -> Void
     var onClearTap: (() -> Void)?
     var isListening: Bool = false
@@ -19,16 +18,6 @@ struct TranslationInputCard: View {
                 Spacer()
 
                 HStack(spacing: AppSpacing.md) {
-                    // Camera button
-                    if let onCameraTap = onCameraTap {
-                        Button(action: onCameraTap) {
-                            Image(systemName: "camera.viewfinder")
-                                .font(.system(size: 20))
-                                .foregroundColor(.appTextSecondary)
-                                .frame(width: 44, height: 44)
-                        }
-                    }
-
                     // Mic button
                     Button(action: onMicTap) {
                         Image(systemName: isListening ? "mic.fill" : "mic")
@@ -80,7 +69,6 @@ struct TranslationInputCard: View {
             TranslationInputCard(
                 languageName: "English",
                 text: .constant("Hello world"),
-                onCameraTap: {},
                 onMicTap: {},
                 onClearTap: {},
                 isListening: false
@@ -89,7 +77,6 @@ struct TranslationInputCard: View {
             TranslationInputCard(
                 languageName: "English",
                 text: .constant(""),
-                onCameraTap: {},
                 onMicTap: {},
                 onClearTap: {},
                 isListening: false
@@ -98,7 +85,6 @@ struct TranslationInputCard: View {
             TranslationInputCard(
                 languageName: "English",
                 text: .constant("Hello"),
-                onCameraTap: {},
                 onMicTap: {},
                 onClearTap: {},
                 isListening: true,
