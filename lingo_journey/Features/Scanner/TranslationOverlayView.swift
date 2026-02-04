@@ -76,15 +76,15 @@ struct TranslationOverlayView: View {
     }
 
     private var overlayPosition: CGPoint {
+        // VisionKit bounds are already in screen coordinates (pixels), not normalized
         let box = result.boundingBox
-        let x = box.midX * containerSize.width
-        let y = box.midY * containerSize.height
-        return CGPoint(x: x, y: y)
+        return CGPoint(x: box.midX, y: box.midY)
     }
 
     private var fontSize: CGFloat {
-        let boxHeight = result.boundingBox.height * containerSize.height
-        return min(max(boxHeight * 0.6, 12), 24)
+        // boundingBox.height is already in pixels
+        let boxHeight = result.boundingBox.height
+        return min(max(boxHeight * 0.5, 14), 28)
     }
 }
 
@@ -120,7 +120,7 @@ private struct PulsingDot: View {
         TranslationOverlayView(
             result: ScanResult(
                 originalText: "Hello World",
-                boundingBox: CGRect(x: 0.3, y: 0.4, width: 0.4, height: 0.1),
+                boundingBox: CGRect(x: 100, y: 300, width: 200, height: 40),
                 isTranslating: true
             ),
             containerSize: CGSize(width: 400, height: 800),
@@ -136,7 +136,7 @@ private struct PulsingDot: View {
             result: ScanResult(
                 originalText: "Hello World",
                 translatedText: "你好世界",
-                boundingBox: CGRect(x: 0.3, y: 0.4, width: 0.4, height: 0.1),
+                boundingBox: CGRect(x: 100, y: 300, width: 200, height: 40),
                 isTranslating: false
             ),
             containerSize: CGSize(width: 400, height: 800),
@@ -151,7 +151,7 @@ private struct PulsingDot: View {
         TranslationOverlayView(
             result: ScanResult(
                 originalText: "Hello World",
-                boundingBox: CGRect(x: 0.3, y: 0.4, width: 0.4, height: 0.1),
+                boundingBox: CGRect(x: 100, y: 300, width: 200, height: 40),
                 isTranslating: false,
                 translationFailed: true
             ),
