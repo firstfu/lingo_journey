@@ -1,7 +1,6 @@
 import Foundation
 import SwiftUI
 import Photos
-import NaturalLanguage
 
 /// 掃描器狀態
 enum ScannerState: Equatable {
@@ -102,50 +101,90 @@ final class PhotoScannerViewModel {
         }
     }
 
-    /// 檢查文字是否屬於指定語言
+    /// 檢查文字是否屬於指定語言（使用字元分析）
     private func isTextInLanguage(_ text: String, languageCode: String) -> Bool {
-        // 文字太短時（少於 5 個字元），無法準確判斷語言，直接通過
-        if text.count < 5 {
-            return true
-        }
+        let normalizedCode = normalizeLanguageCode(languageCode)
 
-        let recognizer = NLLanguageRecognizer()
-        recognizer.processString(text)
+        // 計算各種語言字元的數量
+        var chineseCount = 0
+        var englishCount = 0
+        var japaneseKanaCount = 0
+        var koreanCount = 0
+        var totalCount = 0
 
-        // 獲取語言假設及其信心度
-        let hypotheses = recognizer.languageHypotheses(withMaximum: 3)
+        for scalar in text.unicodeScalars {
+            // 跳過空白和標點
+            if scalar.properties.isWhitespace ||
+               CharacterSet.punctuationCharacters.contains(scalar) ||
+               CharacterSet.symbols.contains(scalar) {
+                continue
+            }
 
-        // 如果無法偵測語言，默認通過（讓翻譯引擎處理）
-        guard !hypotheses.isEmpty else {
-            return true
-        }
+            totalCount += 1
 
-        // 處理語言碼對應
-        let normalizedSourceCode = normalizeLanguageCode(languageCode)
-
-        // 檢查是否在前三個假設中包含來源語言
-        for (language, confidence) in hypotheses {
-            let normalizedDetectedCode = normalizeLanguageCode(language.rawValue)
-            if normalizedSourceCode == normalizedDetectedCode && confidence > 0.3 {
-                return true
+            // 中文字元 (CJK 統一漢字)
+            if (0x4E00...0x9FFF).contains(scalar.value) ||
+               (0x3400...0x4DBF).contains(scalar.value) {
+                chineseCount += 1
+            }
+            // 英文字母
+            else if (0x0041...0x005A).contains(scalar.value) ||  // A-Z
+                    (0x0061...0x007A).contains(scalar.value) {   // a-z
+                englishCount += 1
+            }
+            // 日文假名
+            else if (0x3040...0x309F).contains(scalar.value) ||  // 平假名
+                    (0x30A0...0x30FF).contains(scalar.value) {   // 片假名
+                japaneseKanaCount += 1
+            }
+            // 韓文
+            else if (0xAC00...0xD7AF).contains(scalar.value) {
+                koreanCount += 1
             }
         }
 
-        // 如果最高信心度的語言信心度低於 0.5，也讓它通過（不確定時放行）
-        if let topConfidence = hypotheses.values.max(), topConfidence < 0.5 {
-            return true
-        }
+        // 防止除以零
+        guard totalCount > 0 else { return false }
 
-        return false
+        // 計算比例
+        let chineseRatio = Double(chineseCount) / Double(totalCount)
+        let englishRatio = Double(englishCount) / Double(totalCount)
+        let japaneseRatio = Double(japaneseKanaCount + chineseCount) / Double(totalCount)  // 日文包含漢字
+        let koreanRatio = Double(koreanCount) / Double(totalCount)
+
+        // 閾值：來源語言字元佔比超過 30% 才翻譯
+        let threshold = 0.3
+
+        switch normalizedCode {
+        case "zh":
+            // 中文：漢字佔比 > 30%，且沒有日文假名（區分中日文）
+            return chineseRatio > threshold && japaneseKanaCount == 0
+        case "en":
+            // 英文：英文字母佔比 > 30%
+            return englishRatio > threshold
+        case "ja":
+            // 日文：有假名，或漢字佔比高
+            return japaneseKanaCount > 0 || (chineseRatio > threshold && japaneseKanaCount > 0)
+        case "ko":
+            // 韓文：韓文字元佔比 > 30%
+            return koreanRatio > threshold
+        default:
+            // 其他語言：默認使用英文判斷邏輯
+            return englishRatio > threshold
+        }
     }
 
     /// 正規化語言碼 (處理變體如 zh-Hant, zh-Hans)
     private func normalizeLanguageCode(_ code: String) -> String {
-        // 中文變體統一為 zh
         if code.hasPrefix("zh") {
             return "zh"
         }
-        // 取主要語言碼 (en-US → en)
+        if code.hasPrefix("ja") {
+            return "ja"
+        }
+        if code.hasPrefix("ko") {
+            return "ko"
+        }
         return code.components(separatedBy: "-").first ?? code
     }
 
