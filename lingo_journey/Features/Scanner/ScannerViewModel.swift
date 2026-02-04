@@ -111,9 +111,11 @@ final class ScannerViewModel {
         let pending = pendingTranslations
         pendingTranslations.removeAll()
 
+        // 過濾掉已在快取中的項目
+        var toTranslate: [(id: UUID, text: String)] = []
         for (id, text) in pending {
-            // 再次檢查快取（可能在等待期間已被翻譯）
             if let cached = translationCache[text] {
+                // 已有快取，直接更新 UI
                 await MainActor.run {
                     if let index = scanResults.firstIndex(where: { $0.id == id }) {
                         scanResults[index] = ScanResult(
@@ -126,39 +128,53 @@ final class ScannerViewModel {
                         )
                     }
                 }
-                continue
+            } else {
+                toTranslate.append((id: id, text: text))
             }
+        }
 
+        // 批次翻譯
+        if !toTranslate.isEmpty {
             do {
-                let response = try await session.translate(text)
-                let translatedText = response.targetText
+                // 使用批次翻譯 API
+                let requests = toTranslate.map { TranslationSession.Request(sourceText: $0.text) }
+                let responses = try await session.translations(from: requests)
 
-                // 存入快取
                 await MainActor.run {
-                    translationCache[text] = translatedText
+                    for (index, response) in responses.enumerated() {
+                        let item = toTranslate[index]
+                        let translatedText = response.targetText
 
-                    if let index = scanResults.firstIndex(where: { $0.id == id }) {
-                        scanResults[index] = ScanResult(
-                            id: id,
-                            originalText: scanResults[index].originalText,
-                            translatedText: translatedText,
-                            boundingBox: scanResults[index].boundingBox,
-                            isTranslating: false,
-                            translationFailed: false
-                        )
+                        // 存入快取
+                        translationCache[item.text] = translatedText
+
+                        // 更新 UI
+                        if let resultIndex = scanResults.firstIndex(where: { $0.id == item.id }) {
+                            scanResults[resultIndex] = ScanResult(
+                                id: item.id,
+                                originalText: scanResults[resultIndex].originalText,
+                                translatedText: translatedText,
+                                boundingBox: scanResults[resultIndex].boundingBox,
+                                isTranslating: false,
+                                translationFailed: false
+                            )
+                        }
                     }
                 }
             } catch {
+                // 批次翻譯失敗，標記所有項目為失敗
                 await MainActor.run {
-                    if let index = scanResults.firstIndex(where: { $0.id == id }) {
-                        scanResults[index] = ScanResult(
-                            id: id,
-                            originalText: scanResults[index].originalText,
-                            translatedText: nil,
-                            boundingBox: scanResults[index].boundingBox,
-                            isTranslating: false,
-                            translationFailed: true
-                        )
+                    for item in toTranslate {
+                        if let resultIndex = scanResults.firstIndex(where: { $0.id == item.id }) {
+                            scanResults[resultIndex] = ScanResult(
+                                id: item.id,
+                                originalText: scanResults[resultIndex].originalText,
+                                translatedText: nil,
+                                boundingBox: scanResults[resultIndex].boundingBox,
+                                isTranslating: false,
+                                translationFailed: true
+                            )
+                        }
                     }
                 }
             }

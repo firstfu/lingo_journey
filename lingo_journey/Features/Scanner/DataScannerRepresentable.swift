@@ -14,8 +14,8 @@ struct DataScannerRepresentable: UIViewControllerRepresentable {
             recognizesMultipleItems: true,
             isHighFrameRateTrackingEnabled: true,
             isPinchToZoomEnabled: true,
-            isGuidanceEnabled: true,
-            isHighlightingEnabled: true
+            isGuidanceEnabled: false,
+            isHighlightingEnabled: false  // 關閉高亮，使用自定義 AR 疊加
         )
         scanner.delegate = context.coordinator
         return scanner
