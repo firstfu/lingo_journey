@@ -84,7 +84,8 @@ struct ScanResultCard: View {
                 result: ScanResult(
                     originalText: "Menu du jour",
                     translatedText: "今日菜單",
-                    boundingBox: .zero
+                    boundingBox: .zero,
+                    translationFailed: false
                 ),
                 isSelected: false,
                 onTap: {},
@@ -95,7 +96,8 @@ struct ScanResultCard: View {
                 result: ScanResult(
                     originalText: "Soupe à l'oignon",
                     boundingBox: .zero,
-                    isTranslating: true
+                    isTranslating: true,
+                    translationFailed: false
                 ),
                 isSelected: true,
                 onTap: {},
