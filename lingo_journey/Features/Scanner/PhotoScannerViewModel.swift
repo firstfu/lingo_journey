@@ -104,18 +104,39 @@ final class PhotoScannerViewModel {
 
     /// 檢查文字是否屬於指定語言
     private func isTextInLanguage(_ text: String, languageCode: String) -> Bool {
+        // 文字太短時（少於 5 個字元），無法準確判斷語言，直接通過
+        if text.count < 5 {
+            return true
+        }
+
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
 
-        guard let detectedLanguage = recognizer.dominantLanguage else {
-            return false
+        // 獲取語言假設及其信心度
+        let hypotheses = recognizer.languageHypotheses(withMaximum: 3)
+
+        // 如果無法偵測語言，默認通過（讓翻譯引擎處理）
+        guard !hypotheses.isEmpty else {
+            return true
         }
 
-        // 處理語言碼對應 (zh-Hant, zh-Hans → zh)
+        // 處理語言碼對應
         let normalizedSourceCode = normalizeLanguageCode(languageCode)
-        let normalizedDetectedCode = normalizeLanguageCode(detectedLanguage.rawValue)
 
-        return normalizedSourceCode == normalizedDetectedCode
+        // 檢查是否在前三個假設中包含來源語言
+        for (language, confidence) in hypotheses {
+            let normalizedDetectedCode = normalizeLanguageCode(language.rawValue)
+            if normalizedSourceCode == normalizedDetectedCode && confidence > 0.3 {
+                return true
+            }
+        }
+
+        // 如果最高信心度的語言信心度低於 0.5，也讓它通過（不確定時放行）
+        if let topConfidence = hypotheses.values.max(), topConfidence < 0.5 {
+            return true
+        }
+
+        return false
     }
 
     /// 正規化語言碼 (處理變體如 zh-Hant, zh-Hans)
