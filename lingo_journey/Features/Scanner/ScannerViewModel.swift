@@ -9,7 +9,14 @@ final class ScannerViewModel {
     var scanResults: [ScanResult] = []
     var selectedResultId: UUID?
     var scannerState: ScannerState = .initializing
+    var showDetailCard: Bool = false
+
+    // MARK: - Legacy (deprecated, for backward compatibility until ScannerView is refactored)
     var panelDetent: PanelDetent = .half
+
+    // MARK: - Constants
+    private let maxOverlayCount = 10
+    private let minBoundingBoxArea: CGFloat = 0.001
 
     // MARK: - Languages
     var sourceLanguage: Locale.Language
@@ -41,7 +48,6 @@ final class ScannerViewModel {
                 let transcript = text.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !transcript.isEmpty else { continue }
 
-                // Check if this text already exists
                 // Convert bounds to CGRect
                 let boundingBox = CGRect(
                     x: text.bounds.topLeft.x,
@@ -50,6 +56,10 @@ final class ScannerViewModel {
                     height: text.bounds.bottomLeft.y - text.bounds.topLeft.y
                 )
 
+                // Filter out bounding boxes that are too small
+                let area = boundingBox.width * boundingBox.height
+                guard area >= minBoundingBoxArea else { continue }
+
                 if let existingIndex = scanResults.firstIndex(where: { $0.originalText == transcript }) {
                     let existing = scanResults[existingIndex]
                     let updated = ScanResult(
@@ -57,17 +67,24 @@ final class ScannerViewModel {
                         originalText: existing.originalText,
                         translatedText: existing.translatedText,
                         boundingBox: boundingBox,
-                        isTranslating: existing.isTranslating
+                        isTranslating: existing.isTranslating,
+                        translationFailed: existing.translationFailed
                     )
                     newResults.append(updated)
                 } else {
                     let result = ScanResult(
                         originalText: transcript,
                         boundingBox: boundingBox,
-                        isTranslating: true
+                        isTranslating: true,
+                        translationFailed: false
                     )
                     newResults.append(result)
                     pendingTranslations[result.id] = transcript
+                }
+
+                // Limit the number of overlay results
+                if newResults.count >= maxOverlayCount {
+                    break
                 }
             }
         }
@@ -108,7 +125,8 @@ final class ScannerViewModel {
                             originalText: scanResults[index].originalText,
                             translatedText: response.targetText,
                             boundingBox: scanResults[index].boundingBox,
-                            isTranslating: false
+                            isTranslating: false,
+                            translationFailed: false
                         )
                     }
                 }
@@ -120,7 +138,8 @@ final class ScannerViewModel {
                             originalText: scanResults[index].originalText,
                             translatedText: nil,
                             boundingBox: scanResults[index].boundingBox,
-                            isTranslating: false
+                            isTranslating: false,
+                            translationFailed: true
                         )
                     }
                 }
@@ -135,6 +154,12 @@ final class ScannerViewModel {
     // MARK: - Selection
     func selectResult(_ id: UUID) {
         selectedResultId = selectedResultId == id ? nil : id
+        showDetailCard = selectedResultId != nil
+    }
+
+    func dismissDetailCard() {
+        showDetailCard = false
+        selectedResultId = nil
     }
 
     func getSelectedResult() -> ScanResult? {
