@@ -6,7 +6,9 @@ import Translation
 @Observable
 final class ScannerViewModel {
     // MARK: - State
-    var scanResults: [ScanResult] = []
+
+    /// 當前偵測到的文字（用於顯示 AR 疊加）
+    var displayResults: [ScanResult] = []
     var selectedResultId: UUID?
     var showDetailCard: Bool = false
 
@@ -14,8 +16,12 @@ final class ScannerViewModel {
     /// 翻譯快取：key = 原始文字, value = 翻譯結果
     private var translationCache: [String: String] = [:]
 
+    /// 已翻譯的結果（持久化顯示）
+    private var translatedResults: [String: ScanResult] = [:]
+
     // MARK: - Constants
-    private let maxOverlayCount = 15
+    private let maxOverlayCount = 10
+    private let debounceInterval: TimeInterval = 0.3  // 防抖動間隔
 
     // MARK: - Languages
     var sourceLanguage: Locale.Language
@@ -23,8 +29,10 @@ final class ScannerViewModel {
 
     // MARK: - Translation
     var translationConfiguration: TranslationSession.Configuration?
-    private var pendingTranslations: [UUID: String] = [:]
+    private var pendingTexts: Set<String> = []
     private var isTranslating = false
+    private var lastUpdateTime: Date = .distantPast
+    private var debounceTask: Task<Void, Never>?
 
     init(sourceLanguage: Locale.Language, targetLanguage: Locale.Language) {
         self.sourceLanguage = sourceLanguage
@@ -33,67 +41,63 @@ final class ScannerViewModel {
 
     // MARK: - Text Recognition
     func handleRecognizedItems(_ items: [RecognizedItem]) {
-        var newResults: [ScanResult] = []
+        // 防抖動：取消之前的任務
+        debounceTask?.cancel()
+
+        debounceTask = Task { @MainActor in
+            // 等待一小段時間，避免頻繁更新
+            try? await Task.sleep(for: .milliseconds(100))
+            guard !Task.isCancelled else { return }
+
+            processRecognizedItems(items)
+        }
+    }
+
+    @MainActor
+    private func processRecognizedItems(_ items: [RecognizedItem]) {
+        var newDisplayResults: [ScanResult] = []
+        var textsNeedTranslation: [String] = []
 
         for item in items {
-            if case .text(let text) = item {
-                let transcript = text.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !transcript.isEmpty else { continue }
+            guard case .text(let text) = item else { continue }
 
-                // Convert bounds to CGRect
-                let boundingBox = CGRect(
-                    x: text.bounds.topLeft.x,
-                    y: text.bounds.topLeft.y,
-                    width: text.bounds.topRight.x - text.bounds.topLeft.x,
-                    height: text.bounds.bottomLeft.y - text.bounds.topLeft.y
+            let transcript = text.transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !transcript.isEmpty else { continue }
+            guard newDisplayResults.count < maxOverlayCount else { break }
+
+            // 計算 boundingBox
+            let boundingBox = CGRect(
+                x: text.bounds.topLeft.x,
+                y: text.bounds.topLeft.y,
+                width: text.bounds.topRight.x - text.bounds.topLeft.x,
+                height: text.bounds.bottomLeft.y - text.bounds.topLeft.y
+            )
+
+            // 檢查快取
+            if let cachedTranslation = translationCache[transcript] {
+                // 已有翻譯，直接顯示
+                let result = ScanResult(
+                    originalText: transcript,
+                    translatedText: cachedTranslation,
+                    boundingBox: boundingBox,
+                    isTranslating: false,
+                    translationFailed: false
                 )
-
-                // 檢查快取中是否已有翻譯
-                if let cachedTranslation = translationCache[transcript] {
-                    // 已有翻譯，直接使用
-                    let result = ScanResult(
-                        originalText: transcript,
-                        translatedText: cachedTranslation,
-                        boundingBox: boundingBox,
-                        isTranslating: false,
-                        translationFailed: false
-                    )
-                    newResults.append(result)
-                } else if let existingIndex = scanResults.firstIndex(where: { $0.originalText == transcript }) {
-                    // 正在翻譯中，保留狀態並更新位置
-                    let existing = scanResults[existingIndex]
-                    let updated = ScanResult(
-                        id: existing.id,
-                        originalText: existing.originalText,
-                        translatedText: existing.translatedText,
-                        boundingBox: boundingBox,
-                        isTranslating: existing.isTranslating,
-                        translationFailed: existing.translationFailed
-                    )
-                    newResults.append(updated)
-                } else {
-                    // 新文字，加入待翻譯佇列
-                    let result = ScanResult(
-                        originalText: transcript,
-                        boundingBox: boundingBox,
-                        isTranslating: true,
-                        translationFailed: false
-                    )
-                    newResults.append(result)
-                    pendingTranslations[result.id] = transcript
-                }
-
-                // Limit the number of overlay results
-                if newResults.count >= maxOverlayCount {
-                    break
-                }
+                newDisplayResults.append(result)
+                translatedResults[transcript] = result
+            } else if !pendingTexts.contains(transcript) {
+                // 需要翻譯，但不顯示 loading 狀態
+                // 只有翻譯完成後才會顯示
+                textsNeedTranslation.append(transcript)
+                pendingTexts.insert(transcript)
             }
         }
 
-        scanResults = newResults
+        // 更新顯示結果
+        displayResults = newDisplayResults
 
-        // Trigger translation for pending items (debounced)
-        if !pendingTranslations.isEmpty && !isTranslating {
+        // 觸發翻譯
+        if !textsNeedTranslation.isEmpty && !isTranslating {
             triggerTranslation()
         }
     }
@@ -108,76 +112,37 @@ final class ScannerViewModel {
     }
 
     func performTranslation(session: TranslationSession) async {
-        let pending = pendingTranslations
-        pendingTranslations.removeAll()
+        let textsToTranslate = Array(pendingTexts)
 
-        // 過濾掉已在快取中的項目
-        var toTranslate: [(id: UUID, text: String)] = []
-        for (id, text) in pending {
-            if let cached = translationCache[text] {
-                // 已有快取，直接更新 UI
-                await MainActor.run {
-                    if let index = scanResults.firstIndex(where: { $0.id == id }) {
-                        scanResults[index] = ScanResult(
-                            id: id,
-                            originalText: text,
-                            translatedText: cached,
-                            boundingBox: scanResults[index].boundingBox,
-                            isTranslating: false,
-                            translationFailed: false
-                        )
-                    }
-                }
-            } else {
-                toTranslate.append((id: id, text: text))
-            }
+        await MainActor.run {
+            pendingTexts.removeAll()
         }
 
-        // 批次翻譯
-        if !toTranslate.isEmpty {
-            do {
-                // 使用批次翻譯 API
-                let requests = toTranslate.map { TranslationSession.Request(sourceText: $0.text) }
-                let responses = try await session.translations(from: requests)
+        guard !textsToTranslate.isEmpty else {
+            await MainActor.run {
+                translationConfiguration = nil
+                isTranslating = false
+            }
+            return
+        }
 
-                await MainActor.run {
-                    for (index, response) in responses.enumerated() {
-                        let item = toTranslate[index]
-                        let translatedText = response.targetText
+        do {
+            // 批次翻譯
+            let requests = textsToTranslate.map { TranslationSession.Request(sourceText: $0) }
+            let responses = try await session.translations(from: requests)
 
-                        // 存入快取
-                        translationCache[item.text] = translatedText
+            await MainActor.run {
+                for (index, response) in responses.enumerated() {
+                    let originalText = textsToTranslate[index]
+                    let translatedText = response.targetText
 
-                        // 更新 UI
-                        if let resultIndex = scanResults.firstIndex(where: { $0.id == item.id }) {
-                            scanResults[resultIndex] = ScanResult(
-                                id: item.id,
-                                originalText: scanResults[resultIndex].originalText,
-                                translatedText: translatedText,
-                                boundingBox: scanResults[resultIndex].boundingBox,
-                                isTranslating: false,
-                                translationFailed: false
-                            )
-                        }
-                    }
-                }
-            } catch {
-                // 批次翻譯失敗，標記所有項目為失敗
-                await MainActor.run {
-                    for item in toTranslate {
-                        if let resultIndex = scanResults.firstIndex(where: { $0.id == item.id }) {
-                            scanResults[resultIndex] = ScanResult(
-                                id: item.id,
-                                originalText: scanResults[resultIndex].originalText,
-                                translatedText: nil,
-                                boundingBox: scanResults[resultIndex].boundingBox,
-                                isTranslating: false,
-                                translationFailed: true
-                            )
-                        }
-                    }
+                    // 存入快取
+                    translationCache[originalText] = translatedText
                 }
             }
+        } catch {
+            // 翻譯失敗，從 pending 中移除（下次會重試）
+            print("Translation error: \(error)")
         }
 
         await MainActor.run {
@@ -185,10 +150,15 @@ final class ScannerViewModel {
             isTranslating = false
 
             // 如果還有待翻譯的項目，繼續翻譯
-            if !pendingTranslations.isEmpty {
+            if !pendingTexts.isEmpty {
                 triggerTranslation()
             }
         }
+    }
+
+    // MARK: - Public accessor for view
+    var scanResults: [ScanResult] {
+        displayResults
     }
 
     // MARK: - Selection
@@ -204,6 +174,6 @@ final class ScannerViewModel {
 
     func getSelectedResult() -> ScanResult? {
         guard let id = selectedResultId else { return nil }
-        return scanResults.first { $0.id == id }
+        return displayResults.first { $0.id == id }
     }
 }

@@ -12,7 +12,7 @@ struct DataScannerRepresentable: UIViewControllerRepresentable {
             recognizedDataTypes: [.text()],
             qualityLevel: .balanced,
             recognizesMultipleItems: true,
-            isHighFrameRateTrackingEnabled: true,
+            isHighFrameRateTrackingEnabled: false,  // 降低更新頻率，提升效能
             isPinchToZoomEnabled: true,
             isGuidanceEnabled: false,
             isHighlightingEnabled: false  // 關閉高亮，使用自定義 AR 疊加
