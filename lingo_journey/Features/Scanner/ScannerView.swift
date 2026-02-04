@@ -19,36 +19,48 @@ struct ScannerView: View {
     }
 
     var body: some View {
-        ZStack {
-            // Camera view
-            if textRecognitionService.isAvailable {
-                DataScannerRepresentable(
-                    onItemsRecognized: { items in
-                        viewModel.handleRecognizedItems(items)
-                    },
-                    onItemTapped: { item in
-                        if case .text(let text) = item {
-                            if let result = viewModel.scanResults.first(where: { $0.originalText == text.transcript }) {
-                                viewModel.selectResult(result.id)
+        GeometryReader { geometry in
+            ZStack {
+                // Camera view
+                if textRecognitionService.isAvailable {
+                    DataScannerRepresentable(
+                        onItemsRecognized: { items in
+                            viewModel.handleRecognizedItems(items)
+                        },
+                        onItemTapped: { item in
+                            if case .text(let text) = item {
+                                if let result = viewModel.scanResults.first(where: { $0.originalText == text.transcript }) {
+                                    viewModel.selectResult(result.id)
+                                }
                             }
-                        }
-                    },
-                    isScanning: $isScanning
-                )
-                .ignoresSafeArea()
-            } else {
-                unavailableView
-            }
+                        },
+                        isScanning: $isScanning
+                    )
+                    .ignoresSafeArea()
 
-            // Top navigation bar
-            VStack {
-                topBar
-                Spacer()
-            }
+                    // AR Overlay Layer
+                    overlayLayer(containerSize: geometry.size)
+                } else {
+                    unavailableView
+                }
 
-            // Bottom panel
-            DraggablePanel(currentDetent: $viewModel.panelDetent) {
-                panelContent
+                // Top navigation bar
+                VStack {
+                    topBar
+                    Spacer()
+                }
+
+                // Status indicator at bottom
+                VStack {
+                    Spacer()
+                    statusIndicator
+                        .padding(.bottom, AppSpacing.xxxl)
+                }
+
+                // Detail card overlay
+                if viewModel.showDetailCard, let selectedResult = viewModel.getSelectedResult() {
+                    detailCardOverlay(result: selectedResult)
+                }
             }
         }
         .translationTask(viewModel.translationConfiguration) { session in
@@ -59,28 +71,45 @@ struct ScannerView: View {
         }
     }
 
+    // MARK: - AR Overlay Layer
+    private func overlayLayer(containerSize: CGSize) -> some View {
+        ZStack {
+            ForEach(viewModel.scanResults) { result in
+                TranslationOverlayView(
+                    result: result,
+                    containerSize: containerSize,
+                    onTap: {
+                        viewModel.selectResult(result.id)
+                    }
+                )
+            }
+        }
+    }
+
     // MARK: - Top Bar
     private var topBar: some View {
         HStack {
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.appTextPrimary)
+                    .foregroundColor(.white)
                     .frame(width: 44, height: 44)
+                    .background(Color.black.opacity(0.3))
+                    .clipShape(Circle())
             }
 
             Spacer()
 
             Text(languagePairText)
                 .font(.appSubheadline)
-                .foregroundColor(.appTextPrimary)
+                .foregroundColor(.white)
+                .padding(.horizontal, AppSpacing.lg)
+                .padding(.vertical, AppSpacing.md)
+                .background(Color.black.opacity(0.3))
+                .clipShape(Capsule())
         }
         .padding(.horizontal, AppSpacing.xl)
-        .frame(height: 56)
-        .background(
-            Color.appSurface.opacity(0.9)
-                .background(.ultraThinMaterial)
-        )
+        .padding(.top, AppSpacing.md)
     }
 
     private var languagePairText: String {
@@ -89,50 +118,15 @@ struct ScannerView: View {
         return "\(source) → \(target)"
     }
 
-    // MARK: - Panel Content
-    private var panelContent: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.lg) {
-            // Status text
-            Text(statusText)
-                .font(.appFootnote)
-                .foregroundColor(.appTextSecondary)
-                .padding(.horizontal, AppSpacing.xl)
-
-            Divider()
-                .background(Color.appBorder)
-                .padding(.horizontal, AppSpacing.xl)
-
-            // Results list
-            if viewModel.scanResults.isEmpty {
-                emptyStateView
-            } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: AppSpacing.lg) {
-                            ForEach(viewModel.scanResults) { result in
-                                ScanResultCard(
-                                    result: result,
-                                    isSelected: viewModel.selectedResultId == result.id,
-                                    onTap: { viewModel.selectResult(result.id) },
-                                    onCopy: {}
-                                )
-                                .id(result.id)
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.xl)
-                        .padding(.bottom, AppSpacing.xxxl)
-                    }
-                    .onChange(of: viewModel.selectedResultId) { _, newId in
-                        if let id = newId {
-                            withAnimation {
-                                proxy.scrollTo(id, anchor: .center)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.top, AppSpacing.lg)
+    // MARK: - Status Indicator
+    private var statusIndicator: some View {
+        Text(statusText)
+            .font(.appFootnote)
+            .foregroundColor(.white)
+            .padding(.horizontal, AppSpacing.xl)
+            .padding(.vertical, AppSpacing.md)
+            .background(Color.black.opacity(0.5))
+            .clipShape(Capsule())
     }
 
     private var statusText: String {
@@ -150,21 +144,34 @@ struct ScannerView: View {
         }
     }
 
-    private var emptyStateView: some View {
-        VStack(spacing: AppSpacing.lg) {
-            Image(systemName: "text.viewfinder")
-                .font(.system(size: 48))
-                .foregroundColor(.appTextMuted)
+    // MARK: - Detail Card Overlay
+    private func detailCardOverlay(result: ScanResult) -> some View {
+        ZStack {
+            // Dimmed background
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    viewModel.dismissDetailCard()
+                }
 
-            Text("將相機對準文字即可開始掃描翻譯")
-                .font(.appBody)
-                .foregroundColor(.appTextSecondary)
-                .multilineTextAlignment(.center)
+            // Card from bottom
+            VStack {
+                Spacer()
+                TranslationDetailCard(
+                    result: result,
+                    sourceLanguage: viewModel.sourceLanguage,
+                    targetLanguage: viewModel.targetLanguage,
+                    onDismiss: {
+                        viewModel.dismissDetailCard()
+                    }
+                )
+            }
+            .transition(.move(edge: .bottom))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, AppSpacing.xxxl)
+        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.showDetailCard)
     }
 
+    // MARK: - Unavailable View
     private var unavailableView: some View {
         VStack(spacing: AppSpacing.xxl) {
             Image(systemName: "camera.fill")
