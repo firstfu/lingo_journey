@@ -60,6 +60,7 @@ struct HistoryView: View {
                     Text("history.favorites").tag(true)
                 }
                 .pickerStyle(.segmented)
+                .frame(height: 44)
                 .padding(.horizontal, AppSpacing.xl)
                 .padding(.bottom, AppSpacing.lg)
 
@@ -73,6 +74,7 @@ struct HistoryView: View {
                             HistoryRecordRow(record: record)
                                 .listRowBackground(Color.appBackground)
                                 .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets())
                                 .swipeActions(edge: .trailing) {
                                     Button(role: .destructive) {
                                         deleteRecord(record)
